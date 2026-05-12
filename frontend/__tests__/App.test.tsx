@@ -1,11 +1,20 @@
-import React from 'react'
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen } from "@testing-library/react";
 
-import App from '../src/App';
+import App from "../src/App";
 
-test('App component render', async () => {
+beforeEach(() => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    ok: true,
+    json: async () => ({ content: [{ text: JSON.stringify({ balanceSat: 42000 }) }] }),
+  } as Response);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+test("renders balance display", async () => {
   render(<App />);
 
-  expect(screen.getByRole('button')).toHaveTextContent('count');
+  expect(await screen.findByText(/sat/i)).toBeInTheDocument();
 });
