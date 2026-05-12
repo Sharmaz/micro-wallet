@@ -1,6 +1,6 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Response } from "express";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import {
   getBalanceHandler,
@@ -27,7 +27,13 @@ function mockClient(result?: unknown, error?: Error) {
   } as unknown as Client;
 }
 
+function suppressConsoleError() {
+  beforeEach(() => vi.spyOn(console, "error").mockImplementation(() => {}));
+  afterEach(() => vi.restoreAllMocks());
+}
+
 describe("getBalanceHandler", () => {
+  suppressConsoleError();
   it("returns callTool result as JSON", async () => {
     const result = mockMcpResult(JSON.stringify({ balanceSat: 4393, feeCreditSat: 0 }));
     const client = mockClient(result);
@@ -51,6 +57,7 @@ describe("getBalanceHandler", () => {
 });
 
 describe("createInvoiceHandler", () => {
+  suppressConsoleError();
   it("calls callTool with parsed body and returns result", async () => {
     const result = mockMcpResult(JSON.stringify({ paymentRequest: "lnbc..." }));
     const client = mockClient(result);
