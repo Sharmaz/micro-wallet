@@ -4,7 +4,7 @@ Voice-enabled Lightning wallet. Interact with your Phoenixd node in natural lang
 
 ## Stack
 
-```
+```text
 Frontend (React 19 + Tailwind)  →  Backend (Express)  →  phoenixd-mcp-server  →  Phoenixd
         :5173                           :3000                                        :9740
 ```
@@ -18,7 +18,7 @@ Frontend (React 19 + Tailwind)  →  Backend (Express)  →  phoenixd-mcp-server
 ## Requirements
 
 - [Phoenixd](https://phoenix.acinq.co/server) running (local or via Tailscale)
-- Node.js 20+
+- Node.js 24+
 - Ollama, Anthropic API key, or OpenAI API key (at least one)
 
 ## Configuration
@@ -74,26 +74,38 @@ cd frontend && npm run dev
 
 Frontend available at `http://localhost:5173`.
 
+## Development
+
+Both `frontend/` and `backend/` share the same script interface:
+
+```bash
+npm run lint          # ESLint check
+npm run lint:fix      # ESLint auto-fix
+npm run test          # Vitest (single pass)
+npm run test:watch    # Vitest watch mode
+npm run test:coverage # Vitest with coverage
+```
+
 ## Available MCP Tools
 
-| Tool | Description |
-|---|---|
-| `get-balance` | Wallet balance in satoshis |
-| `create-invoice` | Generate a BOLT11 invoice |
-| `create-offer` | Generate a BOLT12 offer |
-| `pay-invoice` | Pay an invoice |
-| `pay-offer` | Pay an offer |
-| `pay-lightning-address` | Pay to a Lightning address |
-| `list-incoming-payments` | Incoming payment history |
-| `list-outgoing-payments` | Outgoing payment history |
-| `get-node-info` | Node information |
-| `list-channels` | Lightning channels |
-| `decode-invoice` | Decode a BOLT11 invoice |
-| `decode-offer` | Decode a BOLT12 offer |
+| Tool                      | Description                   |
+| ------------------------- | ----------------------------- |
+| `get-balance`             | Wallet balance in satoshis    |
+| `create-invoice`          | Generate a BOLT11 invoice     |
+| `create-offer`            | Generate a BOLT12 offer       |
+| `pay-invoice`             | Pay an invoice                |
+| `pay-offer`               | Pay an offer                  |
+| `pay-lightning-address`   | Pay to a Lightning address    |
+| `list-incoming-payments`  | Incoming payment history      |
+| `list-outgoing-payments`  | Outgoing payment history      |
+| `get-node-info`           | Node information              |
+| `list-channels`           | Lightning channels            |
+| `decode-invoice`          | Decode a BOLT11 invoice       |
+| `decode-offer`            | Decode a BOLT12 offer         |
 
 ## HTTP Endpoints
 
-```
+```text
 GET  /tool/get-balance       — Current balance
 POST /tool/create-invoice    — Create an invoice
 POST /chat                   — Chat with LLM (coming soon)
@@ -103,6 +115,8 @@ POST /chat                   — Chat with LLM (coming soon)
 
 - [x] Express backend with phoenixd-mcp-server
 - [x] Frontend displaying balance
+- [x] ESLint + Vitest configured for frontend and backend
+- [x] GitHub Actions CI (lint + tests)
 - [ ] Migrate to standard MCP Client
 - [ ] `/chat` endpoint with LLM + tool use
 - [ ] Chat UI in the frontend
