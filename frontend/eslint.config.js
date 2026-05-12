@@ -1,16 +1,16 @@
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import importPlugin from "eslint-plugin-import";
-import pluginJest from "eslint-plugin-jest";
 import pluginReact from "eslint-plugin-react";
 import pluginReactHooks from "eslint-plugin-react-hooks";
+import pluginVitest from "@vitest/eslint-plugin";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
   {
-    plugins: { jest: pluginJest },
-    rules: { ...pluginJest.configs.recommended.rules },
+    plugins: { vitest: pluginVitest },
+    rules: { ...pluginVitest.configs.recommended.rules },
   },
 
   {
@@ -18,7 +18,7 @@ export default defineConfig([
     plugins: { js },
     extends: ["js/recommended"],
     languageOptions: {
-      globals: { ...globals.browser, ...globals.jest },
+      globals: { ...globals.browser, ...pluginVitest.environments.env.globals },
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
@@ -34,7 +34,7 @@ export default defineConfig([
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
-      globals: { ...globals.browser, ...globals.jest },
+      globals: { ...globals.browser, ...pluginVitest.environments.env.globals },
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
@@ -113,7 +113,7 @@ export default defineConfig([
       ],
 
       // Variables
-      "no-unused-vars": "off", // delegado a @typescript-eslint/no-unused-vars
+      "no-unused-vars": "off",
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "prefer-const": "error",
       "no-var": "error",
@@ -264,9 +264,9 @@ export default defineConfig([
   },
 
   {
-    files: ["__mocks__/**/*.js", "jest.setup.js", "**/*.cjs"],
+    files: ["**/*.cjs"],
     languageOptions: {
-      globals: { ...globals.node, ...globals.jest },
+      globals: { ...globals.node },
     },
   },
 
