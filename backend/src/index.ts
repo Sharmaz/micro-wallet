@@ -1,7 +1,10 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import dotenv from "dotenv";
 import express from "express";
-import { tools } from "phoenixd-mcp-server/build/tools/index.js";
 import { z } from "zod";
+
+dotenv.config();
 
 const createInvoiceSchema = z.object({
   description: z.string().max(128),
@@ -11,38 +14,29 @@ const createInvoiceSchema = z.object({
   webhookUrl: z.string().optional(),
 });
 
-dotenv.config();
+const transport = new StdioClientTransport({
+  command: "node",
+  args: ["node_modules/phoenixd-mcp-server/build/index.js"],
+  env: {
+    ...process.env,
+    HTTP_PASSWORD: process.env.PHOENIX_PASSWORD ?? "",
+    HTTP_HOST: process.env.PHOENIXD_HOST ?? "127.0.0.1",
+    HTTP_PORT: process.env.PHOENIXD_PORT ?? "9740",
+    HTTP_PROTOCOL: process.env.PHOENIX_PROTOCOL ?? "http",
+  },
+});
 
-const config = {
-  httpPassword: process.env.PHOENIX_PASSWORD || "",
-  httpPort: process.env.PHOENIXD_PORT || "9740",
-  httpHost: process.env.PHOENIXD_HOST || "127.0.0.1",
-  httpProtocol: process.env.PHOENIX_PROTOCOL || "http",
-};
+const client = new Client({ name: "micro-wallet", version: "1.0.0" });
+await client.connect(transport);
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-const toolHandlers: Record<string, (input?: any) => Promise<any>> = {};
-
-const fakeServer = {
-  tool(name: string, description: string, schema: any, handler: (input?: any) => Promise<any>) {
-    if (handler && typeof handler === "function") {
-      toolHandlers[name] = handler;
-    }
-    else if (typeof schema === "function") {
-      toolHandlers[name] = schema;
-    }
-  },
-};
-
-await tools.registerGetBalanceTool(fakeServer, config);
+const port = process.env.PORT ?? 3000;
 
 app.use(express.json());
 
-app.get("/tool/get-balance", async (req, res) => {
+app.get("/tool/get-balance", async (_req, res) => {
   try {
-    const result = await toolHandlers["get-balance"]();
+    const result = await client.callTool({ name: "get-balance", arguments: {} });
     res.json(result);
   } catch (err) {
     console.error(err);
@@ -50,24 +44,22 @@ app.get("/tool/get-balance", async (req, res) => {
   }
 });
 
-await tools.registerCreateInvoiceTool(fakeServer, config);
-
 app.post("/tool/create-invoice", async (req, res) => {
   try {
     const parsed = createInvoiceSchema.parse(req.body);
-    const result = await toolHandlers["create-invoice"](parsed);
+    const result = await client.callTool({ name: "create-invoice", arguments: parsed });
     res.json(result);
   } catch (err) {
     console.error(err);
 
     if (err instanceof z.ZodError) {
       return res.status(400).json({
-        error: "Parámetros inválidos",
+        error: "Invalid parameters",
         details: err.errors,
       });
     }
 
-    res.status(500).json({ error: "Error al crear invoice" });
+    res.status(500).json({ error: "Failed to create invoice" });
   }
 });
 
