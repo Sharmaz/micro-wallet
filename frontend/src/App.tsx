@@ -4,6 +4,7 @@ import { getBalance } from "./api";
 import { History } from "./components/History";
 import { Receive } from "./components/Receive";
 import { Send } from "./components/Send";
+import { usePrice } from "./hooks/usePrice";
 
 type Tab = "receive" | "send" | "history";
 
@@ -13,10 +14,16 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "history", label: "History" },
 ];
 
+function formatFiat(sats: number, btcPrice: number, currency: "USD" | "MXN") {
+  const amount = (sats / 100_000_000) * btcPrice;
+  return amount.toLocaleString("en-US", { style: "currency", currency, currencyDisplay: "code", maximumFractionDigits: 2 });
+}
+
 function App() {
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceError, setBalanceError] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("receive");
+  const { price } = usePrice();
 
   useEffect(() => {
     getBalance()
@@ -34,10 +41,17 @@ function App() {
           ) : balance === null ? (
             "Loading..."
           ) : (
-            <>
-              <span className="text-white text-2xl font-semibold">{balance}</span>
-              <span className="text-green-600 ml-1">sat</span>
-            </>
+            <div className="flex flex-col items-center gap-1">
+              <div>
+                <span className="text-white text-2xl font-semibold">{balance.toLocaleString()}</span>
+                <span className="text-green-600 ml-1">sat</span>
+              </div>
+              {price && (
+                <span className="text-neutral-400 text-xs">
+                  ≈ {formatFiat(balance, price.usd, "USD")} · {formatFiat(balance, price.mxn, "MXN")}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </header>
