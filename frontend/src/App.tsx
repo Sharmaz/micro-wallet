@@ -1,33 +1,68 @@
 import { useState, useEffect } from "react";
 
-import config from "./config";
+import { getBalance } from "./api";
+import { History } from "./components/History";
+import { Receive } from "./components/Receive";
+import { Send } from "./components/Send";
+
+type Tab = "receive" | "send" | "history";
+
+const tabs: { id: Tab; label: string }[] = [
+  { id: "receive", label: "Receive" },
+  { id: "send", label: "Send" },
+  { id: "history", label: "History" },
+];
 
 function App() {
-  const [balance, setBalance] = useState(0);
-  async function fetchData() {
-    try {
-      const response = await fetch(`${config.baseUrl}/tool/get-balance`);
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      setBalance(JSON.parse(data.content[0].text).balanceSat);
-    } catch (error) {
-      console.error("Fetch error:", error);
-    }
-  }
+  const [balance, setBalance] = useState<number | null>(null);
+  const [balanceError, setBalanceError] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("receive");
 
   useEffect(() => {
-    fetchData();
+    getBalance()
+      .then(setBalance)
+      .catch(() => setBalanceError(true));
   }, []);
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen bg-neutral-800">
-      <h1 className="text-5xl text-green-500 text-center">Micro Wallet</h1>
-      <div className="p-8 text-gray-50">
-        {balance}
-        <span className="text-green-600"> sat</span>
-      </div>
+    <div className="min-h-screen bg-neutral-800 flex flex-col">
+      <header className="px-6 pt-8 pb-6 text-center">
+        <h1 className="text-3xl font-bold text-green-500">Micro Wallet</h1>
+        <div className="mt-2 text-neutral-400 text-sm">
+          {balanceError ? (
+            <span className="text-red-400">Backend offline</span>
+          ) : balance === null ? (
+            "Loading..."
+          ) : (
+            <>
+              <span className="text-white text-2xl font-semibold">{balance}</span>
+              <span className="text-green-600 ml-1">sat</span>
+            </>
+          )}
+        </div>
+      </header>
+
+      <nav className="flex border-b border-neutral-700 px-6">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id
+                ? "text-green-500 border-green-500"
+                : "text-neutral-400 border-transparent hover:text-white"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <main className="flex-1 px-6 py-8">
+        {activeTab === "receive" && <Receive />}
+        {activeTab === "send" && <Send />}
+        {activeTab === "history" && <History />}
+      </main>
     </div>
   );
 }
