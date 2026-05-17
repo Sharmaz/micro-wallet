@@ -5,7 +5,7 @@ import { z } from "zod";
 export const createInvoiceSchema = z.object({
   description: z.string().max(128),
   amountSat: z.number().optional(),
-  expirySeconds: z.number().optional(),
+  expirySeconds: z.number().optional().default(604800),
   externalId: z.string().optional(),
   webhookUrl: z.string().optional(),
 });
