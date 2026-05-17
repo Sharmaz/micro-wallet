@@ -70,7 +70,10 @@ describe("createInvoiceHandler", () => {
 
     await createInvoiceHandler(client, body, res);
 
-    expect(client.callTool).toHaveBeenCalledWith({ name: "create-invoice", arguments: body });
+    expect(client.callTool).toHaveBeenCalledWith({
+      name: "create-invoice",
+      arguments: { ...body, expirySeconds: 604800 },
+    });
     expect(res.json).toHaveBeenCalledWith(result);
   });
 
