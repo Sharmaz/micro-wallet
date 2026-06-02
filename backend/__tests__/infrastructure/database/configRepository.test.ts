@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
+import { initDb } from "@/infrastructure/database/database.js";
 import {
-  initDb,
   getPhoenixConfig,
   getLlmConfig,
   savePhoenixConfig,
   saveLlmConfig,
   initDefaults,
-} from "../src/db.js";
+} from "@/infrastructure/database/repositories/configRepository.js";
 
 const defaultPhoenix = {
   host: "127.0.0.1",
