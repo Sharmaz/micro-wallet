@@ -4,14 +4,16 @@ import { getBalance } from "./api";
 import { History } from "./components/History";
 import { Receive } from "./components/Receive";
 import { Send } from "./components/Send";
+import { Settings } from "./components/Settings";
 import { usePrice } from "./hooks/usePrice";
 
-type Tab = "receive" | "send" | "history";
+type Tab = "receive" | "send" | "history" | "settings";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "receive", label: "Receive" },
   { id: "send", label: "Send" },
   { id: "history", label: "History" },
+  { id: "settings", label: "Settings" },
 ];
 
 function formatFiat(sats: number, btcPrice: number, currency: "USD" | "MXN") {
@@ -76,6 +78,7 @@ function App() {
         {activeTab === "receive" && <Receive />}
         {activeTab === "send" && <Send />}
         {activeTab === "history" && <History />}
+        {activeTab === "settings" && <Settings />}
       </main>
     </div>
   );
