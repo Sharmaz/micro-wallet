@@ -2,12 +2,33 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Response } from "express";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+vi.mock("../src/db.js", () => ({
+  getPhoenixConfig: vi.fn(() => ({
+    host: "127.0.0.1",
+    port: "9740",
+    protocol: "http",
+    password: "secret",
+  })),
+  getLlmConfig: vi.fn(() => ({
+    provider: "ollama",
+    baseUrl: "http://localhost:11434/v1",
+    model: "llama3.2",
+    apiKey: "",
+  })),
+  savePhoenixConfig: vi.fn(),
+  saveLlmConfig: vi.fn(),
+  initDefaults: vi.fn(),
+}));
+
 import {
   getBalanceHandler,
   createInvoiceHandler,
   createInvoiceSchema,
   payInvoiceHandler,
   listIncomingPaymentsHandler,
+  getConfigHandler,
+  updatePhoenixConfigHandler,
+  updateLlmConfigHandler,
 } from "../src/app.js";
 
 const mockMcpResult = (text: string) => ({
@@ -191,6 +212,75 @@ describe("listIncomingPaymentsHandler", () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Failed to list payments" });
+  });
+});
+
+describe("getConfigHandler", () => {
+  it("masks phoenix password and llm api key", () => {
+    const res = mockRes();
+
+    getConfigHandler(res);
+
+    const call = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(call.phoenix.password).toBe("****");
+    expect(call.llm.apiKey).toBeDefined();
+  });
+});
+
+describe("updatePhoenixConfigHandler", () => {
+  suppressConsoleError();
+
+  it("calls updatePhoenixConfig and returns ok", async () => {
+    const updatePhoenixConfig = vi.fn().mockResolvedValue(undefined);
+    const res = mockRes();
+
+    await updatePhoenixConfigHandler({ host: "100.0.0.1" }, updatePhoenixConfig, res);
+
+    expect(updatePhoenixConfig).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("returns 400 for invalid protocol", async () => {
+    const updatePhoenixConfig = vi.fn();
+    const res = mockRes();
+
+    await updatePhoenixConfigHandler({ protocol: "ftp" }, updatePhoenixConfig, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(updatePhoenixConfig).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when updatePhoenixConfig throws", async () => {
+    const updatePhoenixConfig = vi.fn().mockRejectedValue(new Error("reconnect failed"));
+    const res = mockRes();
+
+    await updatePhoenixConfigHandler({ host: "100.0.0.1" }, updatePhoenixConfig, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
+
+describe("updateLlmConfigHandler", () => {
+  suppressConsoleError();
+
+  it("calls updateLlmConfig and returns ok", () => {
+    const updateLlmConfig = vi.fn();
+    const res = mockRes();
+
+    updateLlmConfigHandler({ model: "llama3.3" }, updateLlmConfig, res);
+
+    expect(updateLlmConfig).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("returns 400 for invalid provider", () => {
+    const updateLlmConfig = vi.fn();
+    const res = mockRes();
+
+    updateLlmConfigHandler({ provider: "grok" }, updateLlmConfig, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(updateLlmConfig).not.toHaveBeenCalled();
   });
 });
 
