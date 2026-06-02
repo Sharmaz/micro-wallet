@@ -2,7 +2,14 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import express, { type Response } from "express";
 import { z } from "zod";
 
+import { getPhoenixConfig, getLlmConfig, type PhoenixConfig, type LlmConfig } from "./db.js";
 import { getBitcoinPrice } from "./price.js";
+
+type AppDeps = {
+  getClient: () => Client;
+  updatePhoenixConfig: (config: PhoenixConfig) => Promise<void>;
+  updateLlmConfig: (config: LlmConfig) => void;
+};
 
 export const createInvoiceSchema = z.object({
   description: z.string().max(128),
@@ -23,9 +30,22 @@ export const listIncomingPaymentsSchema = z.object({
   all: z.boolean().optional(),
 });
 
+export const updatePhoenixConfigSchema = z.object({
+  host: z.string().min(1).optional(),
+  port: z.string().min(1).optional(),
+  protocol: z.enum(["http", "https"]).optional(),
+  password: z.string().optional(),
+});
+
+export const updateLlmConfigSchema = z.object({
+  provider: z.enum(["ollama", "openai", "anthropic"]).optional(),
+  baseUrl: z.string().optional(),
+  model: z.string().optional(),
+  apiKey: z.string().optional(),
+});
+
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type PayInvoiceInput = z.infer<typeof payInvoiceSchema>;
-export type ListIncomingPaymentsInput = z.infer<typeof listIncomingPaymentsSchema>;
 
 export async function getBalanceHandler(client: Client, res: Response) {
   try {
@@ -91,15 +111,67 @@ export async function getPriceHandler(res: Response) {
   }
 }
 
-export function createApp(client: Client) {
+export function getConfigHandler(res: Response) {
+  const phoenix = getPhoenixConfig();
+  const llm = getLlmConfig();
+  res.json({
+    phoenix: { ...phoenix, password: "****" },
+    llm: { ...llm, apiKey: llm.apiKey ? "****" : "" },
+  });
+}
+
+export async function updatePhoenixConfigHandler(
+  body: unknown,
+  updatePhoenixConfig: AppDeps["updatePhoenixConfig"],
+  res: Response,
+) {
+  try {
+    const patch = updatePhoenixConfigSchema.parse(body);
+    const current = getPhoenixConfig();
+    await updatePhoenixConfig({ ...current, ...patch });
+    res.json({ ok: true });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Invalid parameters", details: err.errors });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: "Failed to update Phoenix config" });
+  }
+}
+
+export function updateLlmConfigHandler(
+  body: unknown,
+  updateLlmConfig: AppDeps["updateLlmConfig"],
+  res: Response,
+) {
+  try {
+    const patch = updateLlmConfigSchema.parse(body);
+    const current = getLlmConfig();
+    updateLlmConfig({ ...current, ...patch });
+    res.json({ ok: true });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Invalid parameters", details: err.errors });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: "Failed to update LLM config" });
+  }
+}
+
+export function createApp({ getClient, updatePhoenixConfig, updateLlmConfig }: AppDeps) {
   const app = express();
   app.use(express.json());
 
-  app.get("/tool/get-balance", (_req, res) => getBalanceHandler(client, res));
-  app.post("/tool/create-invoice", (req, res) => createInvoiceHandler(client, req.body, res));
-  app.post("/tool/pay-invoice", (req, res) => payInvoiceHandler(client, req.body, res));
-  app.get("/tool/list-incoming-payments", (req, res) => listIncomingPaymentsHandler(client, req.query, res));
+  app.get("/tool/get-balance", (_req, res) => getBalanceHandler(getClient(), res));
+  app.post("/tool/create-invoice", (req, res) => createInvoiceHandler(getClient(), req.body, res));
+  app.post("/tool/pay-invoice", (req, res) => payInvoiceHandler(getClient(), req.body, res));
+  app.get("/tool/list-incoming-payments", (req, res) => listIncomingPaymentsHandler(getClient(), req.query, res));
   app.get("/price", (_req, res) => getPriceHandler(res));
+  app.get("/config", (_req, res) => getConfigHandler(res));
+  app.post("/config/phoenix", (req, res) => updatePhoenixConfigHandler(req.body, updatePhoenixConfig, res));
+  app.post("/config/llm", (req, res) => updateLlmConfigHandler(req.body, updateLlmConfig, res));
 
   return app;
 }

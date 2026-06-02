@@ -9,7 +9,9 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "keywords": [],
   "author": "",
@@ -17,15 +19,19 @@
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.10.0",
     "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.45.2",
     "express": "^5.1.0",
     "phoenixd-mcp-server": "^1.1.0",
     "zod": "^3.25.41"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/node": "^22.15.24",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
     "eslint-plugin-import": "^2.32.0",
     "globals": "^15.15.0",
