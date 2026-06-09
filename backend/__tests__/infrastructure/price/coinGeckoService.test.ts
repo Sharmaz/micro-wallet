@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { getBitcoinPrice, resetCache } from "../src/price.js";
+import { getBitcoinPrice, resetCache } from "@/infrastructure/price/coinGeckoService.js";
 
 const mockPrice = { bitcoin: { usd: 105000, mxn: 2100000 } };
 

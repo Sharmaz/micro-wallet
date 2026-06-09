@@ -1,9 +1,9 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import dotenv from "dotenv";
 
-import { createApp } from "./app.js";
-import { initDefaults, getPhoenixConfig, savePhoenixConfig, saveLlmConfig, type PhoenixConfig, type LlmConfig } from "./db.js";
+import type { PhoenixConfig, LlmConfig } from "@/domain/types.js";
+import { initDefaults, savePhoenixConfig, saveLlmConfig, getPhoenixConfig } from "@/infrastructure/database/repositories/configRepository.js";
+import { connectMcp, getMcpClient } from "@/infrastructure/mcp/client.js";
+import { createApp } from "@/interface/app.js";
 
 dotenv.config();
 
@@ -22,37 +22,23 @@ initDefaults(
   },
 );
 
-let transport: StdioClientTransport;
-let client: Client;
+await connectMcp(getPhoenixConfig());
 
-async function connectMcp(config: PhoenixConfig) {
-  if (transport) await transport.close().catch(() => {});
-  transport = new StdioClientTransport({
-    command: "node",
-    args: ["node_modules/phoenixd-mcp-server/build/index.js"],
-    env: {
-      HTTP_PASSWORD: config.password,
-      HTTP_HOST: config.host,
-      HTTP_PORT: config.port,
-      HTTP_PROTOCOL: config.protocol,
-    },
-  });
-  client = new Client({ name: "micro-wallet", version: "1.0.0" });
-  await client.connect(transport);
-}
-
-async function updatePhoenixConfig(config: PhoenixConfig) {
+async function onPhoenixConfigUpdate(config: PhoenixConfig) {
   savePhoenixConfig(config);
   await connectMcp(config);
 }
 
-function updateLlmConfig(config: LlmConfig) {
+function onLlmConfigUpdate(config: LlmConfig) {
   saveLlmConfig(config);
 }
 
-await connectMcp(getPhoenixConfig());
+const app = createApp({
+  callTool: (args) => getMcpClient().callTool(args),
+  onPhoenixConfigUpdate,
+  onLlmConfigUpdate,
+});
 
-const app = createApp({ getClient: () => client, updatePhoenixConfig, updateLlmConfig });
 const port = process.env.PORT ?? 3000;
 
 app.listen(port, () => {
