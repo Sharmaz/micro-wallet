@@ -19,6 +19,7 @@ async function waitForPriceLoaded() {
 }
 
 test("renders USD select and amount input", () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(() => new Promise(() => {}));
   render(<CurrencyInput onSatsChange={() => {}} />);
   expect(screen.getByRole("combobox")).toHaveValue("usd");
   expect(screen.getByRole("spinbutton")).toBeInTheDocument();

@@ -36,10 +36,7 @@ test("sets error when fetch fails", async () => {
 });
 
 test("starts in loading state", () => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue({
-    ok: true,
-    json: async () => mockPrice,
-  } as Response);
+  vi.spyOn(globalThis, "fetch").mockImplementation(() => new Promise(() => {}));
 
   const { result } = renderHook(() => usePrice());
 

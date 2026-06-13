@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getBalance } from "../api";
+
 import type { PaymentEvent } from "./usePaymentEvents";
 
 export function useBalance(lastEvent: PaymentEvent | null) {

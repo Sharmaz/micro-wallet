@@ -17,7 +17,7 @@ export function Toast({ event }: Props) {
   if (!visible || !event) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+    <div className="fixed top-0 left-0 right-0 bg-green-600 text-white px-4 py-2 shadow-lg text-sm font-medium text-center">
       Received {event.amountSat.toLocaleString()} sat
     </div>
   );
