@@ -1,8 +1,12 @@
+import { createServer } from "http";
+
 import dotenv from "dotenv";
+import { WebSocket, WebSocketServer } from "ws";
 
 import type { PhoenixConfig, LlmConfig } from "@/domain/types.js";
 import { initDefaults, savePhoenixConfig, saveLlmConfig, getPhoenixConfig } from "@/infrastructure/database/repositories/configRepository.js";
 import { connectMcp, getMcpClient } from "@/infrastructure/mcp/client.js";
+import { connectPhoenixdWs } from "@/infrastructure/ws/phoenixdWsClient.js";
 import { createApp } from "@/interface/app.js";
 
 dotenv.config();
@@ -24,23 +28,35 @@ initDefaults(
 
 await connectMcp(getPhoenixConfig());
 
-async function onPhoenixConfigUpdate(config: PhoenixConfig) {
-  savePhoenixConfig(config);
-  await connectMcp(config);
-}
-
-function onLlmConfigUpdate(config: LlmConfig) {
-  saveLlmConfig(config);
-}
-
 const app = createApp({
   callTool: (args) => getMcpClient().callTool(args),
   onPhoenixConfigUpdate,
   onLlmConfigUpdate,
 });
 
+const httpServer = createServer(app);
+const wss = new WebSocketServer({ server: httpServer });
+
+function broadcastToFrontend(data: string) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) client.send(data);
+  });
+}
+
+connectPhoenixdWs(getPhoenixConfig(), broadcastToFrontend);
+
+async function onPhoenixConfigUpdate(config: PhoenixConfig) {
+  savePhoenixConfig(config);
+  await connectMcp(config);
+  connectPhoenixdWs(config, broadcastToFrontend);
+}
+
+function onLlmConfigUpdate(config: LlmConfig) {
+  saveLlmConfig(config);
+}
+
 const port = process.env.PORT ?? 3000;
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.warn(`Server running at http://localhost:${port}`);
 });
