@@ -34,10 +34,25 @@ export async function payInvoice(invoice: string, amountSat?: number): Promise<v
 }
 
 export type Payment = {
-  paymentHash: string;
+  id: string;
   amountSat: number;
-  description: string;
-  completedAt: number;
+  description: string | null;
+  completedAt: number | null;
+  isPaid: boolean;
+};
+
+type RawIncoming = {
+  paymentHash: string;
+  receivedSat: number;
+  description?: string;
+  completedAt?: number;
+  isPaid: boolean;
+};
+
+type RawOutgoing = {
+  paymentId: string;
+  sent: number;
+  completedAt?: number;
   isPaid: boolean;
 };
 
@@ -45,5 +60,26 @@ export async function listIncomingPayments(): Promise<Payment[]> {
   const res = await fetch(`${config.baseUrl}/tool/list-incoming-payments`);
   if (!res.ok) throw new Error("Failed to fetch payments");
   const data: McpResponse = await res.json();
-  return parseMcp(data);
+  const raw: RawIncoming[] = parseMcp(data);
+  return raw.map((p) => ({
+    id: p.paymentHash,
+    amountSat: p.receivedSat,
+    description: p.description ?? null,
+    completedAt: p.completedAt ?? null,
+    isPaid: p.isPaid,
+  }));
+}
+
+export async function listOutgoingPayments(): Promise<Payment[]> {
+  const res = await fetch(`${config.baseUrl}/tool/list-outgoing-payments`);
+  if (!res.ok) throw new Error("Failed to fetch outgoing payments");
+  const data: McpResponse = await res.json();
+  const raw: RawOutgoing[] = parseMcp(data);
+  return raw.map((p) => ({
+    id: p.paymentId,
+    amountSat: p.sent,
+    description: null,
+    completedAt: p.completedAt ?? null,
+    isPaid: p.isPaid,
+  }));
 }
