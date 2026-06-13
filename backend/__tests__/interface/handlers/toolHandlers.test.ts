@@ -30,6 +30,7 @@ import {
   createInvoiceSchema,
   payInvoiceHandler,
   listIncomingPaymentsHandler,
+  listOutgoingPaymentsHandler,
 } from "@/interface/handlers/toolHandlers.js";
 
 const mockMcpResult = (text: string) => ({
@@ -182,6 +183,30 @@ describe("listIncomingPaymentsHandler", () => {
     const res = mockRes();
 
     await listIncomingPaymentsHandler(callTool, {}, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
+
+describe("listOutgoingPaymentsHandler", () => {
+  suppressConsoleError();
+
+  it("calls callTool with empty query and returns result", async () => {
+    const result = mockMcpResult(JSON.stringify([]));
+    const callTool = mockCallTool(result);
+    const res = mockRes();
+
+    await listOutgoingPaymentsHandler(callTool, {}, res);
+
+    expect(callTool).toHaveBeenCalledWith({ name: "list-outgoing-payments", arguments: {} });
+    expect(res.json).toHaveBeenCalledWith(result);
+  });
+
+  it("returns 500 when callTool throws", async () => {
+    const callTool = mockCallTool(undefined, new Error("list failed"));
+    const res = mockRes();
+
+    await listOutgoingPaymentsHandler(callTool, {}, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
   });

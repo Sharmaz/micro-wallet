@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createInvoice } from "@/application/usecases/createInvoice.js";
 import { getBalance } from "@/application/usecases/getBalance.js";
 import { listIncomingPayments } from "@/application/usecases/listIncomingPayments.js";
+import { listOutgoingPayments } from "@/application/usecases/listOutgoingPayments.js";
 import { payInvoice } from "@/application/usecases/payInvoice.js";
 import type { CallToolFn } from "@/domain/types.js";
 
@@ -21,6 +22,12 @@ export const payInvoiceSchema = z.object({
 });
 
 export const listIncomingPaymentsSchema = z.object({
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  all: z.boolean().optional(),
+});
+
+export const listOutgoingPaymentsSchema = z.object({
   limit: z.number().optional(),
   offset: z.number().optional(),
   all: z.boolean().optional(),
@@ -74,5 +81,19 @@ export async function listIncomingPaymentsHandler(callTool: CallToolFn, query: u
     }
     console.error(err);
     res.status(500).json({ error: "Failed to list payments" });
+  }
+}
+
+export async function listOutgoingPaymentsHandler(callTool: CallToolFn, query: unknown, res: Response) {
+  try {
+    const parsed = listOutgoingPaymentsSchema.parse(query);
+    res.json(await listOutgoingPayments(callTool, parsed));
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: "Invalid parameters", details: err.errors });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: "Failed to list outgoing payments" });
   }
 }

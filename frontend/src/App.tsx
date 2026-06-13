@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-import { getBalance } from "./api";
 import { History } from "./components/History";
 import { Receive } from "./components/Receive";
 import { Send } from "./components/Send";
 import { Settings } from "./components/Settings";
+import { Toast } from "./components/Toast";
+import { useBalance } from "./hooks/useBalance";
+import { usePaymentEvents } from "./hooks/usePaymentEvents";
 import { usePrice } from "./hooks/usePrice";
 
 type Tab = "receive" | "send" | "history" | "settings";
@@ -22,16 +24,10 @@ function formatFiat(sats: number, btcPrice: number, currency: "USD" | "MXN") {
 }
 
 function App() {
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceError, setBalanceError] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("receive");
+  const { lastEvent } = usePaymentEvents();
+  const { balance, error: balanceError } = useBalance(lastEvent);
   const { price } = usePrice();
-
-  useEffect(() => {
-    getBalance()
-      .then(setBalance)
-      .catch(() => setBalanceError(true));
-  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-800 flex flex-col">
@@ -80,6 +76,8 @@ function App() {
         {activeTab === "history" && <History />}
         {activeTab === "settings" && <Settings />}
       </main>
+
+      <Toast event={lastEvent} />
     </div>
   );
 }
