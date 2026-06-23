@@ -31,7 +31,16 @@ export function Settings() {
   useEffect(() => {
     fetch("/config")
       .then((r) => r.json())
-      .then((data) => setConfig({ ...data, phoenixPassword: "", llmApiKey: "" }))
+      .then((data) => setConfig({
+        phoenixHost: data.phoenix.host,
+        phoenixPort: data.phoenix.port,
+        phoenixProtocol: data.phoenix.protocol,
+        phoenixPassword: "",
+        llmProvider: data.llm.provider,
+        llmBaseUrl: data.llm.baseUrl,
+        llmModel: data.llm.model,
+        llmApiKey: "",
+      }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -40,12 +49,33 @@ export function Settings() {
     setSaving(true);
     setStatus("idle");
     try {
-      const res = await fetch("/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
-      });
-      setStatus(res.ok ? "success" : "error");
+      const phoenixPatch: Record<string, string> = {
+        host: config.phoenixHost,
+        port: config.phoenixPort,
+        protocol: config.phoenixProtocol,
+      };
+      if (config.phoenixPassword) phoenixPatch.password = config.phoenixPassword;
+
+      const llmPatch: Record<string, string> = {
+        provider: config.llmProvider,
+        baseUrl: config.llmBaseUrl,
+        model: config.llmModel,
+      };
+      if (config.llmApiKey) llmPatch.apiKey = config.llmApiKey;
+
+      const [phoenixRes, llmRes] = await Promise.all([
+        fetch("/config/phoenix", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(phoenixPatch),
+        }),
+        fetch("/config/llm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(llmPatch),
+        }),
+      ]);
+      setStatus(phoenixRes.ok && llmRes.ok ? "success" : "error");
     } catch {
       setStatus("error");
     } finally {
