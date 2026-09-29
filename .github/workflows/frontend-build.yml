@@ -1,4 +1,4 @@
-name: Backend Unit Tests
+name: Frontend Build
 
 on:
   pull_request:
@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Backend Tests
+  build:
+    name: Frontend Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -18,10 +18,8 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
-      - run: npm --prefix ./backend ci
-      - run: npm rebuild better-sqlite3 --ignore-scripts=false
-        working-directory: ./backend
+      - run: npm --prefix ./frontend ci
       - run: npm audit --audit-level=high
-        working-directory: ./backend
-      - run: npm run test
-        working-directory: ./backend
+        working-directory: ./frontend
+      - run: npm run build
+        working-directory: ./frontend
