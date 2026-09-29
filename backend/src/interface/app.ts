@@ -2,29 +2,30 @@ import express from "express";
 
 import { getConfigHandler, updatePhoenixConfigHandler, updateLlmConfigHandler } from "./handlers/configHandlers.js";
 import { getPriceHandler } from "./handlers/priceHandlers.js";
-import { getBalanceHandler, createInvoiceHandler, payInvoiceHandler, listIncomingPaymentsHandler, listOutgoingPaymentsHandler } from "./handlers/toolHandlers.js";
+import { getBalanceHandler, createInvoiceHandler, decodeInvoiceHandler, payInvoiceHandler, listIncomingPaymentsHandler, listOutgoingPaymentsHandler } from "./handlers/toolHandlers.js";
 
 import type { PhoenixConfig, LlmConfig, CallToolFn } from "@/domain/types.js";
 
-type AppDeps = {
+type ExpressApplicationDependencies = {
   callTool: CallToolFn;
-  onPhoenixConfigUpdate: (config: PhoenixConfig) => Promise<void>;
-  onLlmConfigUpdate: (config: LlmConfig) => void;
+  onPhoenixConfigUpdate: (phoenixConfiguration: PhoenixConfig) => Promise<void>;
+  onLlmConfigUpdate: (llmConfiguration: LlmConfig) => void;
 };
 
-export function createApp({ callTool, onPhoenixConfigUpdate, onLlmConfigUpdate }: AppDeps) {
-  const app = express();
-  app.use(express.json());
+export function createApp({ callTool, onPhoenixConfigUpdate, onLlmConfigUpdate }: ExpressApplicationDependencies) {
+  const expressApplication = express();
+  expressApplication.use(express.json());
 
-  app.get("/tool/get-balance", (_req, res) => getBalanceHandler(callTool, res));
-  app.post("/tool/create-invoice", (req, res) => createInvoiceHandler(callTool, req.body, res));
-  app.post("/tool/pay-invoice", (req, res) => payInvoiceHandler(callTool, req.body, res));
-  app.get("/tool/list-incoming-payments", (req, res) => listIncomingPaymentsHandler(callTool, req.query, res));
-  app.get("/tool/list-outgoing-payments", (req, res) => listOutgoingPaymentsHandler(callTool, req.query, res));
-  app.get("/price", (_req, res) => getPriceHandler(res));
-  app.get("/config", (_req, res) => getConfigHandler(res));
-  app.post("/config/phoenix", (req, res) => updatePhoenixConfigHandler(req.body, onPhoenixConfigUpdate, res));
-  app.post("/config/llm", (req, res) => updateLlmConfigHandler(req.body, onLlmConfigUpdate, res));
+  expressApplication.get("/tool/get-balance", (httpRequest, httpResponse) => getBalanceHandler(callTool, httpResponse));
+  expressApplication.post("/tool/create-invoice", (httpRequest, httpResponse) => createInvoiceHandler(callTool, httpRequest.body, httpResponse));
+  expressApplication.post("/tool/decode-invoice", (httpRequest, httpResponse) => decodeInvoiceHandler(callTool, httpRequest.body, httpResponse));
+  expressApplication.post("/tool/pay-invoice", (httpRequest, httpResponse) => payInvoiceHandler(callTool, httpRequest.body, httpResponse));
+  expressApplication.get("/tool/list-incoming-payments", (httpRequest, httpResponse) => listIncomingPaymentsHandler(callTool, httpRequest.query, httpResponse));
+  expressApplication.get("/tool/list-outgoing-payments", (httpRequest, httpResponse) => listOutgoingPaymentsHandler(callTool, httpRequest.query, httpResponse));
+  expressApplication.get("/price", (httpRequest, httpResponse) => getPriceHandler(httpResponse));
+  expressApplication.get("/config", (httpRequest, httpResponse) => getConfigHandler(httpResponse));
+  expressApplication.post("/config/phoenix", (httpRequest, httpResponse) => updatePhoenixConfigHandler(httpRequest.body, onPhoenixConfigUpdate, httpResponse));
+  expressApplication.post("/config/llm", (httpRequest, httpResponse) => updateLlmConfigHandler(httpRequest.body, onLlmConfigUpdate, httpResponse));
 
-  return app;
+  return expressApplication;
 }
