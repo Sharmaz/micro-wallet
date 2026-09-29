@@ -4,14 +4,14 @@ import dotenv from "dotenv";
 import { WebSocket, WebSocketServer } from "ws";
 
 import type { PhoenixdConfiguration, LlmConfiguration } from "@/domain/types.js";
-import { initDefaults, savePhoenixConfig, saveLlmConfig, getPhoenixConfig } from "@/infrastructure/database/repositories/configRepository.js";
+import { initializeDefaultConfigurations, savePhoenixdConfiguration, saveLlmConfiguration, getPhoenixdConfiguration } from "@/infrastructure/database/repositories/configurationRepository.js";
 import { connectPhoenixdMcp, getPhoenixdMcpClient } from "@/infrastructure/mcp/phoenixdMcpClient.js";
 import { connectPhoenixdWebSocket } from "@/infrastructure/webSocket/phoenixdWebSocketClient.js";
 import { createExpressApplication } from "@/interface/expressApplication.js";
 
 dotenv.config();
 
-initDefaults(
+initializeDefaultConfigurations(
   {
     host: process.env.PHOENIXD_HOST ?? "127.0.0.1",
     port: process.env.PHOENIXD_PORT ?? "9740",
@@ -26,7 +26,7 @@ initDefaults(
   },
 );
 
-await connectPhoenixdMcp(getPhoenixConfig());
+await connectPhoenixdMcp(getPhoenixdConfiguration());
 
 const expressApplication = createExpressApplication({
   callTool: (toolCall) => getPhoenixdMcpClient().callTool(toolCall),
@@ -43,16 +43,16 @@ function broadcastToFrontend(phoenixdMessage: string) {
   });
 }
 
-connectPhoenixdWebSocket(getPhoenixConfig(), broadcastToFrontend);
+connectPhoenixdWebSocket(getPhoenixdConfiguration(), broadcastToFrontend);
 
 async function onPhoenixdConfigurationUpdate(phoenixdConfiguration: PhoenixdConfiguration) {
-  savePhoenixConfig(phoenixdConfiguration);
+  savePhoenixdConfiguration(phoenixdConfiguration);
   await connectPhoenixdMcp(phoenixdConfiguration);
   connectPhoenixdWebSocket(phoenixdConfiguration, broadcastToFrontend);
 }
 
 function onLlmConfigurationUpdate(llmConfiguration: LlmConfiguration) {
-  saveLlmConfig(llmConfiguration);
+  saveLlmConfiguration(llmConfiguration);
 }
 
 const httpServerPort = process.env.PORT ?? 3000;
