@@ -1,9 +1,9 @@
-import type { CallToolFn } from "@/domain/types.js";
+import type { CallToolFunction } from "@/domain/types.js";
 
-export type DecodeInvoiceInput = {
+export type InvoiceToDecode = {
   invoice: string;
 };
 
-export async function decodeInvoice(callTool: CallToolFn, { invoice }: DecodeInvoiceInput) {
+export async function decodeInvoice(callTool: CallToolFunction, { invoice }: InvoiceToDecode) {
   return callTool({ name: "decode-invoice", arguments: { invoice } });
 }
