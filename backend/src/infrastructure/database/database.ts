@@ -11,7 +11,7 @@ type DrizzleDatabase = ReturnType<typeof drizzle>;
 
 let drizzleDatabase: DrizzleDatabase;
 
-export function initDb(databaseFilePath: string = DEFAULT_DATABASE_FILE_PATH) {
+export function initializeDatabase(databaseFilePath: string = DEFAULT_DATABASE_FILE_PATH) {
   const sqliteConnection = new SqliteDatabase(databaseFilePath);
   drizzleDatabase = drizzle(sqliteConnection, { schema: databaseSchema });
   migrate(drizzleDatabase, { migrationsFolder: MIGRATIONS_FOLDER });
@@ -21,4 +21,4 @@ export function getDatabase(): DrizzleDatabase {
   return drizzleDatabase;
 }
 
-initDb();
+initializeDatabase();

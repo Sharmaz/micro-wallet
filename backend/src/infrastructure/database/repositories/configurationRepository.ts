@@ -4,7 +4,7 @@ import type { PhoenixdConfiguration, LlmConfiguration } from "@/domain/types.js"
 import { getDatabase } from "@/infrastructure/database/database.js";
 import { CONFIGURATION_ROW_ID, llmConfigurationTable, phoenixdConfigurationTable } from "@/infrastructure/database/schema.js";
 
-export function getPhoenixConfig(): PhoenixdConfiguration {
+export function getPhoenixdConfiguration(): PhoenixdConfiguration {
   const phoenixdConfigurationRow = getDatabase()
     .select()
     .from(phoenixdConfigurationTable)
@@ -15,7 +15,7 @@ export function getPhoenixConfig(): PhoenixdConfiguration {
   return phoenixdConfiguration;
 }
 
-export function getLlmConfig(): LlmConfiguration {
+export function getLlmConfiguration(): LlmConfiguration {
   const llmConfigurationRow = getDatabase()
     .select()
     .from(llmConfigurationTable)
@@ -26,32 +26,32 @@ export function getLlmConfig(): LlmConfiguration {
   return llmConfiguration;
 }
 
-export function savePhoenixConfig(phoenixdConfiguration: PhoenixdConfiguration) {
+export function savePhoenixdConfiguration(phoenixdConfiguration: PhoenixdConfiguration) {
   getDatabase().insert(phoenixdConfigurationTable)
     .values({ id: CONFIGURATION_ROW_ID, ...phoenixdConfiguration })
     .onConflictDoUpdate({ target: phoenixdConfigurationTable.id, set: phoenixdConfiguration })
     .run();
 }
 
-export function saveLlmConfig(llmConfiguration: LlmConfiguration) {
+export function saveLlmConfiguration(llmConfiguration: LlmConfiguration) {
   getDatabase().insert(llmConfigurationTable)
     .values({ id: CONFIGURATION_ROW_ID, ...llmConfiguration })
     .onConflictDoUpdate({ target: llmConfigurationTable.id, set: llmConfiguration })
     .run();
 }
 
-export function initDefaults(defaultPhoenixdConfiguration: PhoenixdConfiguration, defaultLlmConfiguration: LlmConfiguration) {
+export function initializeDefaultConfigurations(defaultPhoenixdConfiguration: PhoenixdConfiguration, defaultLlmConfiguration: LlmConfiguration) {
   const existingPhoenixdConfigurationRow = getDatabase()
     .select({ id: phoenixdConfigurationTable.id })
     .from(phoenixdConfigurationTable)
     .where(equals(phoenixdConfigurationTable.id, CONFIGURATION_ROW_ID))
     .get();
-  if (!existingPhoenixdConfigurationRow) savePhoenixConfig(defaultPhoenixdConfiguration);
+  if (!existingPhoenixdConfigurationRow) savePhoenixdConfiguration(defaultPhoenixdConfiguration);
 
   const existingLlmConfigurationRow = getDatabase()
     .select({ id: llmConfigurationTable.id })
     .from(llmConfigurationTable)
     .where(equals(llmConfigurationTable.id, CONFIGURATION_ROW_ID))
     .get();
-  if (!existingLlmConfigurationRow) saveLlmConfig(defaultLlmConfiguration);
+  if (!existingLlmConfigurationRow) saveLlmConfiguration(defaultLlmConfiguration);
 }
