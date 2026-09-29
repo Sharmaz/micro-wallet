@@ -1,6 +1,6 @@
 import express from "express";
 
-import { getConfigHandler, updatePhoenixConfigHandler, updateLlmConfigHandler } from "./handlers/configHandlers.js";
+import { getConfigurationHandler, updatePhoenixdConfigurationHandler, updateLlmConfigurationHandler } from "./handlers/configurationHandlers.js";
 import { getPriceHandler } from "./handlers/priceHandlers.js";
 import { getBalanceHandler, createInvoiceHandler, decodeInvoiceHandler, payInvoiceHandler, listIncomingPaymentsHandler, listOutgoingPaymentsHandler } from "./handlers/toolHandlers.js";
 
@@ -23,9 +23,9 @@ export function createExpressApplication({ callTool, onPhoenixdConfigurationUpda
   expressApplication.get("/tool/list-incoming-payments", (httpRequest, httpResponse) => listIncomingPaymentsHandler(callTool, httpRequest.query, httpResponse));
   expressApplication.get("/tool/list-outgoing-payments", (httpRequest, httpResponse) => listOutgoingPaymentsHandler(callTool, httpRequest.query, httpResponse));
   expressApplication.get("/price", (httpRequest, httpResponse) => getPriceHandler(httpResponse));
-  expressApplication.get("/config", (httpRequest, httpResponse) => getConfigHandler(httpResponse));
-  expressApplication.post("/config/phoenix", (httpRequest, httpResponse) => updatePhoenixConfigHandler(httpRequest.body, onPhoenixdConfigurationUpdate, httpResponse));
-  expressApplication.post("/config/llm", (httpRequest, httpResponse) => updateLlmConfigHandler(httpRequest.body, onLlmConfigurationUpdate, httpResponse));
+  expressApplication.get("/config", (httpRequest, httpResponse) => getConfigurationHandler(httpResponse));
+  expressApplication.post("/config/phoenix", (httpRequest, httpResponse) => updatePhoenixdConfigurationHandler(httpRequest.body, onPhoenixdConfigurationUpdate, httpResponse));
+  expressApplication.post("/config/llm", (httpRequest, httpResponse) => updateLlmConfigurationHandler(httpRequest.body, onLlmConfigurationUpdate, httpResponse));
 
   return expressApplication;
 }

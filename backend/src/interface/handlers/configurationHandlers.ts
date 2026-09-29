@@ -4,10 +4,7 @@ import * as zod from "zod";
 import { respondToHandlerError } from "./respondToHandlerError.js";
 
 import type { PhoenixdConfiguration, LlmConfiguration } from "@/domain/types.js";
-import {
-  getPhoenixConfig,
-  getLlmConfig,
-} from "@/infrastructure/database/repositories/configRepository.js";
+import { getPhoenixdConfiguration, getLlmConfiguration } from "@/infrastructure/database/repositories/configurationRepository.js";
 
 const MASKED_SECRET = "****";
 
@@ -25,23 +22,23 @@ export const updateLlmConfigurationSchema = zod.object({
   apiKey: zod.string().optional(),
 });
 
-export function getConfigHandler(httpResponse: Response) {
-  const phoenixdConfiguration = getPhoenixConfig();
-  const llmConfiguration = getLlmConfig();
+export function getConfigurationHandler(httpResponse: Response) {
+  const phoenixdConfiguration = getPhoenixdConfiguration();
+  const llmConfiguration = getLlmConfiguration();
   httpResponse.json({
     phoenix: { ...phoenixdConfiguration, password: MASKED_SECRET },
     llm: { ...llmConfiguration, apiKey: llmConfiguration.apiKey ? MASKED_SECRET : "" },
   });
 }
 
-export async function updatePhoenixConfigHandler(
+export async function updatePhoenixdConfigurationHandler(
   httpRequestBody: unknown,
   onPhoenixdConfigurationUpdate: (phoenixdConfiguration: PhoenixdConfiguration) => Promise<void>,
   httpResponse: Response,
 ) {
   try {
     const phoenixdConfigurationChanges = updatePhoenixdConfigurationSchema.parse(httpRequestBody);
-    const currentPhoenixdConfiguration = getPhoenixConfig();
+    const currentPhoenixdConfiguration = getPhoenixdConfiguration();
     await onPhoenixdConfigurationUpdate({ ...currentPhoenixdConfiguration, ...phoenixdConfigurationChanges });
     httpResponse.json({ ok: true });
   } catch (updatePhoenixdConfigurationError) {
@@ -49,14 +46,14 @@ export async function updatePhoenixConfigHandler(
   }
 }
 
-export function updateLlmConfigHandler(
+export function updateLlmConfigurationHandler(
   httpRequestBody: unknown,
   onLlmConfigurationUpdate: (llmConfiguration: LlmConfiguration) => void,
   httpResponse: Response,
 ) {
   try {
     const llmConfigurationChanges = updateLlmConfigurationSchema.parse(httpRequestBody);
-    const currentLlmConfiguration = getLlmConfig();
+    const currentLlmConfiguration = getLlmConfiguration();
     onLlmConfigurationUpdate({ ...currentLlmConfiguration, ...llmConfigurationChanges });
     httpResponse.json({ ok: true });
   } catch (updateLlmConfigurationError) {
