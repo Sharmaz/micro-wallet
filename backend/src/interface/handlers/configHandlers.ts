@@ -1,6 +1,8 @@
 import type { Response } from "express";
 import * as zod from "zod";
 
+import { respondToHandlerError } from "./respondToHandlerError.js";
+
 import type { PhoenixdConfiguration, LlmConfiguration } from "@/domain/types.js";
 import {
   getPhoenixConfig,
@@ -43,12 +45,7 @@ export async function updatePhoenixConfigHandler(
     await onPhoenixdConfigurationUpdate({ ...currentPhoenixdConfiguration, ...phoenixdConfigurationChanges });
     httpResponse.json({ ok: true });
   } catch (updatePhoenixdConfigurationError) {
-    if (updatePhoenixdConfigurationError instanceof zod.ZodError) {
-      httpResponse.status(400).json({ error: "Invalid parameters", details: updatePhoenixdConfigurationError.errors });
-      return;
-    }
-    console.error(updatePhoenixdConfigurationError);
-    httpResponse.status(500).json({ error: "Failed to update Phoenix config" });
+    respondToHandlerError(updatePhoenixdConfigurationError, "Failed to update Phoenix config", httpResponse);
   }
 }
 
@@ -63,11 +60,6 @@ export function updateLlmConfigHandler(
     onLlmConfigurationUpdate({ ...currentLlmConfiguration, ...llmConfigurationChanges });
     httpResponse.json({ ok: true });
   } catch (updateLlmConfigurationError) {
-    if (updateLlmConfigurationError instanceof zod.ZodError) {
-      httpResponse.status(400).json({ error: "Invalid parameters", details: updateLlmConfigurationError.errors });
-      return;
-    }
-    console.error(updateLlmConfigurationError);
-    httpResponse.status(500).json({ error: "Failed to update LLM config" });
+    respondToHandlerError(updateLlmConfigurationError, "Failed to update LLM config", httpResponse);
   }
 }
