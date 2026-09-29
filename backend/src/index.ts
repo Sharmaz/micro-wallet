@@ -3,11 +3,11 @@ import { createServer } from "http";
 import dotenv from "dotenv";
 import { WebSocket, WebSocketServer } from "ws";
 
-import type { PhoenixConfig, LlmConfig } from "@/domain/types.js";
+import type { PhoenixdConfiguration, LlmConfiguration } from "@/domain/types.js";
 import { initDefaults, savePhoenixConfig, saveLlmConfig, getPhoenixConfig } from "@/infrastructure/database/repositories/configRepository.js";
-import { connectMcp, getMcpClient } from "@/infrastructure/mcp/client.js";
-import { connectPhoenixdWs } from "@/infrastructure/ws/phoenixdWsClient.js";
-import { createApp } from "@/interface/app.js";
+import { connectPhoenixdMcp, getPhoenixdMcpClient } from "@/infrastructure/mcp/phoenixdMcpClient.js";
+import { connectPhoenixdWebSocket } from "@/infrastructure/webSocket/phoenixdWebSocketClient.js";
+import { createExpressApplication } from "@/interface/expressApplication.js";
 
 dotenv.config();
 
@@ -26,37 +26,37 @@ initDefaults(
   },
 );
 
-await connectMcp(getPhoenixConfig());
+await connectPhoenixdMcp(getPhoenixConfig());
 
-const app = createApp({
-  callTool: (args) => getMcpClient().callTool(args),
-  onPhoenixConfigUpdate,
-  onLlmConfigUpdate,
+const expressApplication = createExpressApplication({
+  callTool: (toolCall) => getPhoenixdMcpClient().callTool(toolCall),
+  onPhoenixdConfigurationUpdate,
+  onLlmConfigurationUpdate,
 });
 
-const httpServer = createServer(app);
-const wss = new WebSocketServer({ server: httpServer });
+const httpServer = createServer(expressApplication);
+const frontendWebSocketServer = new WebSocketServer({ server: httpServer });
 
-function broadcastToFrontend(data: string) {
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) client.send(data);
+function broadcastToFrontend(phoenixdMessage: string) {
+  frontendWebSocketServer.clients.forEach((frontendSocket) => {
+    if (frontendSocket.readyState === WebSocket.OPEN) frontendSocket.send(phoenixdMessage);
   });
 }
 
-connectPhoenixdWs(getPhoenixConfig(), broadcastToFrontend);
+connectPhoenixdWebSocket(getPhoenixConfig(), broadcastToFrontend);
 
-async function onPhoenixConfigUpdate(config: PhoenixConfig) {
-  savePhoenixConfig(config);
-  await connectMcp(config);
-  connectPhoenixdWs(config, broadcastToFrontend);
+async function onPhoenixdConfigurationUpdate(phoenixdConfiguration: PhoenixdConfiguration) {
+  savePhoenixConfig(phoenixdConfiguration);
+  await connectPhoenixdMcp(phoenixdConfiguration);
+  connectPhoenixdWebSocket(phoenixdConfiguration, broadcastToFrontend);
 }
 
-function onLlmConfigUpdate(config: LlmConfig) {
-  saveLlmConfig(config);
+function onLlmConfigurationUpdate(llmConfiguration: LlmConfiguration) {
+  saveLlmConfig(llmConfiguration);
 }
 
-const port = process.env.PORT ?? 3000;
+const httpServerPort = process.env.PORT ?? 3000;
 
-httpServer.listen(port, () => {
-  console.warn(`Server running at http://localhost:${port}`);
+httpServer.listen(httpServerPort, () => {
+  console.warn(`Server running at http://localhost:${httpServerPort}`);
 });
