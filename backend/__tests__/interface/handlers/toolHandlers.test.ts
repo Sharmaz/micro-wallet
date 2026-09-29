@@ -1,29 +1,7 @@
-import type { Response } from "express";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("@/infrastructure/database/repositories/configRepository.js", () => ({
-  getPhoenixConfig: vi.fn(() => ({
-    host: "127.0.0.1",
-    port: "9740",
-    protocol: "http",
-    password: "secret",
-  })),
-  getLlmConfig: vi.fn(() => ({
-    provider: "ollama",
-    baseUrl: "http://localhost:11434/v1",
-    model: "llama3.2",
-    apiKey: "",
-  })),
-  savePhoenixConfig: vi.fn(),
-  saveLlmConfig: vi.fn(),
-  initDefaults: vi.fn(),
-}));
+import { createMockHttpResponse } from "./createMockHttpResponse.js";
 
-import {
-  getConfigHandler,
-  updatePhoenixConfigHandler,
-  updateLlmConfigHandler,
-} from "@/interface/handlers/configHandlers.js";
 import {
   getBalanceHandler,
   createInvoiceHandler,
@@ -33,23 +11,14 @@ import {
   listOutgoingPaymentsHandler,
 } from "@/interface/handlers/toolHandlers.js";
 
-const mockMcpResult = (text: string) => ({
-  content: [{ type: "text", text }],
-});
-
-function mockRes() {
-  const res = {
-    json: vi.fn(),
-    status: vi.fn(),
-  } as unknown as Response;
-  (res.status as ReturnType<typeof vi.fn>).mockReturnValue(res);
-  return res;
+function createMcpToolResult(toolResultText: string) {
+  return { content: [{ type: "text", text: toolResultText }] };
 }
 
-function mockCallTool(result?: unknown, error?: Error) {
-  return error
-    ? vi.fn().mockRejectedValue(error)
-    : vi.fn().mockResolvedValue(result);
+function createMockCallTool(toolResult?: unknown, toolError?: Error) {
+  return toolError
+    ? vi.fn().mockRejectedValue(toolError)
+    : vi.fn().mockResolvedValue(toolResult);
 }
 
 function suppressConsoleError() {
@@ -60,234 +29,165 @@ function suppressConsoleError() {
 describe("getBalanceHandler", () => {
   suppressConsoleError();
 
-  it("returns callTool result as JSON", async () => {
-    const result = mockMcpResult(JSON.stringify({ balanceSat: 4393, feeCreditSat: 0 }));
-    const callTool = mockCallTool(result);
-    const res = mockRes();
+  it("returns the tool result as JSON", async () => {
+    const balanceToolResult = createMcpToolResult(JSON.stringify({ balanceSat: 4393, feeCreditSat: 0 }));
+    const callTool = createMockCallTool(balanceToolResult);
+    const httpResponse = createMockHttpResponse();
 
-    await getBalanceHandler(callTool, res);
+    await getBalanceHandler(callTool, httpResponse);
 
     expect(callTool).toHaveBeenCalledWith({ name: "get-balance", arguments: {} });
-    expect(res.json).toHaveBeenCalledWith(result);
+    expect(httpResponse.json).toHaveBeenCalledWith(balanceToolResult);
   });
 
   it("returns 500 when callTool throws", async () => {
-    const callTool = mockCallTool(undefined, new Error("MCP connection failed"));
-    const res = mockRes();
+    const callTool = createMockCallTool(undefined, new Error("MCP connection failed"));
+    const httpResponse = createMockHttpResponse();
 
-    await getBalanceHandler(callTool, res);
+    await getBalanceHandler(callTool, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Failed to get balance" });
+    expect(httpResponse.status).toHaveBeenCalledWith(500);
+    expect(httpResponse.json).toHaveBeenCalledWith({ error: "Failed to get balance" });
   });
 });
 
 describe("createInvoiceHandler", () => {
   suppressConsoleError();
 
-  it("calls callTool with parsed body and returns result", async () => {
-    const result = mockMcpResult(JSON.stringify({ paymentRequest: "lnbc..." }));
-    const callTool = mockCallTool(result);
-    const res = mockRes();
-    const body = { description: "midnight snacks", amountSat: 100 };
+  it("calls callTool with the validated invoice and returns the tool result", async () => {
+    const invoiceToolResult = createMcpToolResult(JSON.stringify({ paymentRequest: "lnbc..." }));
+    const callTool = createMockCallTool(invoiceToolResult);
+    const httpResponse = createMockHttpResponse();
+    const invoiceToCreate = { description: "midnight snacks", amountSat: 100 };
 
-    await createInvoiceHandler(callTool, body, res);
+    await createInvoiceHandler(callTool, invoiceToCreate, httpResponse);
 
     expect(callTool).toHaveBeenCalledWith({
       name: "create-invoice",
-      arguments: { ...body, expirySeconds: 604800 },
+      arguments: { ...invoiceToCreate, expirySeconds: 604800 },
     });
-    expect(res.json).toHaveBeenCalledWith(result);
+    expect(httpResponse.json).toHaveBeenCalledWith(invoiceToolResult);
   });
 
-  it("returns 400 when description is missing", async () => {
-    const callTool = mockCallTool();
-    const res = mockRes();
+  it("returns 400 when the description is missing", async () => {
+    const callTool = createMockCallTool();
+    const httpResponse = createMockHttpResponse();
 
-    await createInvoiceHandler(callTool, { amountSat: 100 }, res);
+    await createInvoiceHandler(callTool, { amountSat: 100 }, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: "Invalid parameters" }));
+    expect(httpResponse.status).toHaveBeenCalledWith(400);
+    expect(httpResponse.json).toHaveBeenCalledWith(expect.objectContaining({ error: "Invalid parameters" }));
   });
 
-  it("returns 400 when description exceeds 128 characters", async () => {
-    const callTool = mockCallTool();
-    const res = mockRes();
+  it("returns 400 when the description exceeds 128 characters", async () => {
+    const callTool = createMockCallTool();
+    const httpResponse = createMockHttpResponse();
 
-    await createInvoiceHandler(callTool, { description: "a".repeat(129) }, res);
+    await createInvoiceHandler(callTool, { description: "a".repeat(129) }, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(httpResponse.status).toHaveBeenCalledWith(400);
   });
 
   it("returns 500 when callTool throws", async () => {
-    const callTool = mockCallTool(undefined, new Error("MCP error"));
-    const res = mockRes();
+    const callTool = createMockCallTool(undefined, new Error("MCP error"));
+    const httpResponse = createMockHttpResponse();
 
-    await createInvoiceHandler(callTool, { description: "test" }, res);
+    await createInvoiceHandler(callTool, { description: "test" }, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Failed to create invoice" });
+    expect(httpResponse.status).toHaveBeenCalledWith(500);
+    expect(httpResponse.json).toHaveBeenCalledWith({ error: "Failed to create invoice" });
   });
 });
 
 describe("payInvoiceHandler", () => {
   suppressConsoleError();
 
-  it("calls callTool with invoice and returns result", async () => {
-    const result = mockMcpResult(JSON.stringify({ paymentId: "abc123" }));
-    const callTool = mockCallTool(result);
-    const res = mockRes();
-    const body = { invoice: "lnbc100n1..." };
+  it("calls callTool with the invoice and returns the tool result", async () => {
+    const paymentToolResult = createMcpToolResult(JSON.stringify({ paymentId: "abc123" }));
+    const callTool = createMockCallTool(paymentToolResult);
+    const httpResponse = createMockHttpResponse();
+    const invoiceToPay = { invoice: "lnbc100n1..." };
 
-    await payInvoiceHandler(callTool, body, res);
+    await payInvoiceHandler(callTool, invoiceToPay, httpResponse);
 
-    expect(callTool).toHaveBeenCalledWith({ name: "pay-invoice", arguments: body });
-    expect(res.json).toHaveBeenCalledWith(result);
+    expect(callTool).toHaveBeenCalledWith({ name: "pay-invoice", arguments: invoiceToPay });
+    expect(httpResponse.json).toHaveBeenCalledWith(paymentToolResult);
   });
 
-  it("returns 400 when invoice is missing", async () => {
-    const callTool = mockCallTool();
-    const res = mockRes();
+  it("returns 400 when the invoice is missing", async () => {
+    const callTool = createMockCallTool();
+    const httpResponse = createMockHttpResponse();
 
-    await payInvoiceHandler(callTool, {}, res);
+    await payInvoiceHandler(callTool, {}, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(httpResponse.status).toHaveBeenCalledWith(400);
   });
 
   it("returns 500 when callTool throws", async () => {
-    const callTool = mockCallTool(undefined, new Error("payment failed"));
-    const res = mockRes();
+    const callTool = createMockCallTool(undefined, new Error("payment failed"));
+    const httpResponse = createMockHttpResponse();
 
-    await payInvoiceHandler(callTool, { invoice: "lnbc..." }, res);
+    await payInvoiceHandler(callTool, { invoice: "lnbc..." }, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(500);
+    expect(httpResponse.status).toHaveBeenCalledWith(500);
   });
 });
 
 describe("listIncomingPaymentsHandler", () => {
   suppressConsoleError();
 
-  it("calls callTool with empty query and returns result", async () => {
-    const result = mockMcpResult(JSON.stringify([]));
-    const callTool = mockCallTool(result);
-    const res = mockRes();
+  it("calls callTool with an empty query and returns the tool result", async () => {
+    const incomingPaymentsToolResult = createMcpToolResult(JSON.stringify([]));
+    const callTool = createMockCallTool(incomingPaymentsToolResult);
+    const httpResponse = createMockHttpResponse();
 
-    await listIncomingPaymentsHandler(callTool, {}, res);
+    await listIncomingPaymentsHandler(callTool, {}, httpResponse);
 
     expect(callTool).toHaveBeenCalledWith({ name: "list-incoming-payments", arguments: {} });
-    expect(res.json).toHaveBeenCalledWith(result);
+    expect(httpResponse.json).toHaveBeenCalledWith(incomingPaymentsToolResult);
   });
 
   it("returns 500 when callTool throws", async () => {
-    const callTool = mockCallTool(undefined, new Error("list failed"));
-    const res = mockRes();
+    const callTool = createMockCallTool(undefined, new Error("list failed"));
+    const httpResponse = createMockHttpResponse();
 
-    await listIncomingPaymentsHandler(callTool, {}, res);
+    await listIncomingPaymentsHandler(callTool, {}, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(500);
+    expect(httpResponse.status).toHaveBeenCalledWith(500);
   });
 });
 
 describe("listOutgoingPaymentsHandler", () => {
   suppressConsoleError();
 
-  it("calls callTool with empty query and returns result", async () => {
-    const result = mockMcpResult(JSON.stringify([]));
-    const callTool = mockCallTool(result);
-    const res = mockRes();
+  it("calls callTool with an empty query and returns the tool result", async () => {
+    const outgoingPaymentsToolResult = createMcpToolResult(JSON.stringify([]));
+    const callTool = createMockCallTool(outgoingPaymentsToolResult);
+    const httpResponse = createMockHttpResponse();
 
-    await listOutgoingPaymentsHandler(callTool, {}, res);
+    await listOutgoingPaymentsHandler(callTool, {}, httpResponse);
 
     expect(callTool).toHaveBeenCalledWith({ name: "list-outgoing-payments", arguments: {} });
-    expect(res.json).toHaveBeenCalledWith(result);
+    expect(httpResponse.json).toHaveBeenCalledWith(outgoingPaymentsToolResult);
   });
 
   it("returns 500 when callTool throws", async () => {
-    const callTool = mockCallTool(undefined, new Error("list failed"));
-    const res = mockRes();
+    const callTool = createMockCallTool(undefined, new Error("list failed"));
+    const httpResponse = createMockHttpResponse();
 
-    await listOutgoingPaymentsHandler(callTool, {}, res);
+    await listOutgoingPaymentsHandler(callTool, {}, httpResponse);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("getConfigHandler", () => {
-  it("masks phoenix password and llm api key", () => {
-    const res = mockRes();
-
-    getConfigHandler(res);
-
-    const call = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(call.phoenix.password).toBe("****");
-    expect(call.llm.apiKey).toBeDefined();
-  });
-});
-
-describe("updatePhoenixConfigHandler", () => {
-  suppressConsoleError();
-
-  it("calls onUpdate and returns ok", async () => {
-    const onUpdate = vi.fn().mockResolvedValue(undefined);
-    const res = mockRes();
-
-    await updatePhoenixConfigHandler({ host: "100.0.0.1" }, onUpdate, res);
-
-    expect(onUpdate).toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith({ ok: true });
-  });
-
-  it("returns 400 for invalid protocol", async () => {
-    const onUpdate = vi.fn();
-    const res = mockRes();
-
-    await updatePhoenixConfigHandler({ protocol: "ftp" }, onUpdate, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(onUpdate).not.toHaveBeenCalled();
-  });
-
-  it("returns 500 when onUpdate throws", async () => {
-    const onUpdate = vi.fn().mockRejectedValue(new Error("reconnect failed"));
-    const res = mockRes();
-
-    await updatePhoenixConfigHandler({ host: "100.0.0.1" }, onUpdate, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("updateLlmConfigHandler", () => {
-  suppressConsoleError();
-
-  it("calls onUpdate and returns ok", () => {
-    const onUpdate = vi.fn();
-    const res = mockRes();
-
-    updateLlmConfigHandler({ model: "llama3.3" }, onUpdate, res);
-
-    expect(onUpdate).toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith({ ok: true });
-  });
-
-  it("returns 400 for invalid provider", () => {
-    const onUpdate = vi.fn();
-    const res = mockRes();
-
-    updateLlmConfigHandler({ provider: "grok" }, onUpdate, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(onUpdate).not.toHaveBeenCalled();
+    expect(httpResponse.status).toHaveBeenCalledWith(500);
   });
 });
 
 describe("createInvoiceSchema", () => {
-  it("accepts valid input", () => {
+  it("accepts an invoice with only a description", () => {
     expect(() => createInvoiceSchema.parse({ description: "test" })).not.toThrow();
   });
 
   it("defaults expirySeconds to one week", () => {
-    const result = createInvoiceSchema.parse({ description: "test" });
-    expect(result.expirySeconds).toBe(604800);
+    const invoiceToCreate = createInvoiceSchema.parse({ description: "test" });
+    expect(invoiceToCreate.expirySeconds).toBe(604800);
   });
 });
