@@ -56,11 +56,13 @@ VITE_BASE_URL=http://localhost:3000
 
 ```bash
 # Backend
-cd backend && npm install
+cd backend && npm install && npm rebuild better-sqlite3 --ignore-scripts=false
 
 # Frontend
 cd frontend && npm install
 ```
+
+`backend/.npmrc` and `frontend/.npmrc` block dependency install scripts (`ignore-scripts=true`). `better-sqlite3` is a native module, so the backend rebuilds it explicitly after installing.
 
 ## Running the project
 

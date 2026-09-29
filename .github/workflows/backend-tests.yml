@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: '24'
       - run: npm --prefix ./backend ci
+      - run: npm rebuild better-sqlite3 --ignore-scripts=false
+        working-directory: ./backend
       - run: npm audit --audit-level=high
         working-directory: ./backend
       - run: npm run test
