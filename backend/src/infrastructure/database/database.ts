@@ -1,21 +1,24 @@
-import Database from "better-sqlite3";
+import SqliteDatabase from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
-import * as schema from "./schema.js";
+import * as databaseSchema from "./schema.js";
 
-type DrizzleDb = ReturnType<typeof drizzle>;
+const DEFAULT_DATABASE_FILE_PATH = "db.sqlite";
+const MIGRATIONS_FOLDER = "drizzle/migrations";
 
-let db: DrizzleDb;
+type DrizzleDatabase = ReturnType<typeof drizzle>;
 
-export function initDb(path: string = "db.sqlite") {
-  const sqlite = new Database(path);
-  db = drizzle(sqlite, { schema });
-  migrate(db, { migrationsFolder: "drizzle/migrations" });
+let drizzleDatabase: DrizzleDatabase;
+
+export function initDb(databaseFilePath: string = DEFAULT_DATABASE_FILE_PATH) {
+  const sqliteConnection = new SqliteDatabase(databaseFilePath);
+  drizzleDatabase = drizzle(sqliteConnection, { schema: databaseSchema });
+  migrate(drizzleDatabase, { migrationsFolder: MIGRATIONS_FOLDER });
 }
 
-export function getDb(): DrizzleDb {
-  return db;
+export function getDatabase(): DrizzleDatabase {
+  return drizzleDatabase;
 }
 
 initDb();
