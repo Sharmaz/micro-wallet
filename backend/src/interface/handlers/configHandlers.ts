@@ -1,71 +1,73 @@
 import type { Response } from "express";
-import { z } from "zod";
+import * as zod from "zod";
 
-import type { PhoenixConfig, LlmConfig } from "@/domain/types.js";
+import type { PhoenixdConfiguration, LlmConfiguration } from "@/domain/types.js";
 import {
   getPhoenixConfig,
   getLlmConfig,
 } from "@/infrastructure/database/repositories/configRepository.js";
 
-export const updatePhoenixConfigSchema = z.object({
-  host: z.string().min(1).optional(),
-  port: z.string().min(1).optional(),
-  protocol: z.enum(["http", "https"]).optional(),
-  password: z.string().optional(),
+const MASKED_SECRET = "****";
+
+export const updatePhoenixdConfigurationSchema = zod.object({
+  host: zod.string().min(1).optional(),
+  port: zod.string().min(1).optional(),
+  protocol: zod.enum(["http", "https"]).optional(),
+  password: zod.string().optional(),
 });
 
-export const updateLlmConfigSchema = z.object({
-  provider: z.enum(["ollama", "openai", "anthropic"]).optional(),
-  baseUrl: z.string().optional(),
-  model: z.string().optional(),
-  apiKey: z.string().optional(),
+export const updateLlmConfigurationSchema = zod.object({
+  provider: zod.enum(["ollama", "openai", "anthropic"]).optional(),
+  baseUrl: zod.string().optional(),
+  model: zod.string().optional(),
+  apiKey: zod.string().optional(),
 });
 
-export function getConfigHandler(res: Response) {
-  const phoenix = getPhoenixConfig();
-  const llm = getLlmConfig();
-  res.json({
-    phoenix: { ...phoenix, password: "****" },
-    llm: { ...llm, apiKey: llm.apiKey ? "****" : "" },
+export function getConfigHandler(httpResponse: Response) {
+  const phoenixdConfiguration = getPhoenixConfig();
+  const llmConfiguration = getLlmConfig();
+  httpResponse.json({
+    phoenix: { ...phoenixdConfiguration, password: MASKED_SECRET },
+    llm: { ...llmConfiguration, apiKey: llmConfiguration.apiKey ? MASKED_SECRET : "" },
   });
 }
 
 export async function updatePhoenixConfigHandler(
-  body: unknown,
-  onUpdate: (config: PhoenixConfig) => Promise<void>,
-  res: Response,
+  httpRequestBody: unknown,
+  onPhoenixdConfigurationUpdate: (phoenixdConfiguration: PhoenixdConfiguration) => Promise<void>,
+  httpResponse: Response,
 ) {
   try {
-    const patch = updatePhoenixConfigSchema.parse(body);
-    const current = getPhoenixConfig();
-    await onUpdate({ ...current, ...patch });
-    res.json({ ok: true });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid parameters", details: err.errors });
+    const phoenixdConfigurationChanges = updatePhoenixdConfigurationSchema.parse(httpRequestBody);
+    const currentPhoenixdConfiguration = getPhoenixConfig();
+    await onPhoenixdConfigurationUpdate({ ...currentPhoenixdConfiguration, ...phoenixdConfigurationChanges });
+    httpResponse.json({ ok: true });
+  } catch (updatePhoenixdConfigurationError) {
+    if (updatePhoenixdConfigurationError instanceof zod.ZodError) {
+      httpResponse.status(400).json({ error: "Invalid parameters", details: updatePhoenixdConfigurationError.errors });
       return;
     }
-    console.error(err);
-    res.status(500).json({ error: "Failed to update Phoenix config" });
+    console.error(updatePhoenixdConfigurationError);
+    httpResponse.status(500).json({ error: "Failed to update Phoenix config" });
   }
 }
 
 export function updateLlmConfigHandler(
-  body: unknown,
-  onUpdate: (config: LlmConfig) => void,
-  res: Response,
+  httpRequestBody: unknown,
+  onLlmConfigurationUpdate: (llmConfiguration: LlmConfiguration) => void,
+  httpResponse: Response,
 ) {
   try {
-    const patch = updateLlmConfigSchema.parse(body);
-    const current = getLlmConfig();
-    onUpdate({ ...current, ...patch });
-    res.json({ ok: true });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid parameters", details: err.errors });
+    const llmConfigurationChanges = updateLlmConfigurationSchema.parse(httpRequestBody);
+    const currentLlmConfiguration = getLlmConfig();
+    onLlmConfigurationUpdate({ ...currentLlmConfiguration, ...llmConfigurationChanges });
+    httpResponse.json({ ok: true });
+  } catch (updateLlmConfigurationError) {
+    if (updateLlmConfigurationError instanceof zod.ZodError) {
+      httpResponse.status(400).json({ error: "Invalid parameters", details: updateLlmConfigurationError.errors });
       return;
     }
-    console.error(err);
-    res.status(500).json({ error: "Failed to update LLM config" });
+    console.error(updateLlmConfigurationError);
+    httpResponse.status(500).json({ error: "Failed to update LLM config" });
   }
 }

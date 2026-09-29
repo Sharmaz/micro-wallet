@@ -4,15 +4,15 @@ import { getConfigHandler, updatePhoenixConfigHandler, updateLlmConfigHandler } 
 import { getPriceHandler } from "./handlers/priceHandlers.js";
 import { getBalanceHandler, createInvoiceHandler, decodeInvoiceHandler, payInvoiceHandler, listIncomingPaymentsHandler, listOutgoingPaymentsHandler } from "./handlers/toolHandlers.js";
 
-import type { PhoenixConfig, LlmConfig, CallToolFn } from "@/domain/types.js";
+import type { PhoenixdConfiguration, LlmConfiguration, CallToolFunction } from "@/domain/types.js";
 
 type ExpressApplicationDependencies = {
-  callTool: CallToolFn;
-  onPhoenixConfigUpdate: (phoenixConfiguration: PhoenixConfig) => Promise<void>;
-  onLlmConfigUpdate: (llmConfiguration: LlmConfig) => void;
+  callTool: CallToolFunction;
+  onPhoenixdConfigurationUpdate: (phoenixdConfiguration: PhoenixdConfiguration) => Promise<void>;
+  onLlmConfigurationUpdate: (llmConfiguration: LlmConfiguration) => void;
 };
 
-export function createApp({ callTool, onPhoenixConfigUpdate, onLlmConfigUpdate }: ExpressApplicationDependencies) {
+export function createExpressApplication({ callTool, onPhoenixdConfigurationUpdate, onLlmConfigurationUpdate }: ExpressApplicationDependencies) {
   const expressApplication = express();
   expressApplication.use(express.json());
 
@@ -24,8 +24,8 @@ export function createApp({ callTool, onPhoenixConfigUpdate, onLlmConfigUpdate }
   expressApplication.get("/tool/list-outgoing-payments", (httpRequest, httpResponse) => listOutgoingPaymentsHandler(callTool, httpRequest.query, httpResponse));
   expressApplication.get("/price", (httpRequest, httpResponse) => getPriceHandler(httpResponse));
   expressApplication.get("/config", (httpRequest, httpResponse) => getConfigHandler(httpResponse));
-  expressApplication.post("/config/phoenix", (httpRequest, httpResponse) => updatePhoenixConfigHandler(httpRequest.body, onPhoenixConfigUpdate, httpResponse));
-  expressApplication.post("/config/llm", (httpRequest, httpResponse) => updateLlmConfigHandler(httpRequest.body, onLlmConfigUpdate, httpResponse));
+  expressApplication.post("/config/phoenix", (httpRequest, httpResponse) => updatePhoenixConfigHandler(httpRequest.body, onPhoenixdConfigurationUpdate, httpResponse));
+  expressApplication.post("/config/llm", (httpRequest, httpResponse) => updateLlmConfigHandler(httpRequest.body, onLlmConfigurationUpdate, httpResponse));
 
   return expressApplication;
 }

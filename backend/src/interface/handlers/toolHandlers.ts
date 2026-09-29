@@ -7,7 +7,7 @@ import { getBalance } from "@/application/usecases/getBalance.js";
 import { listIncomingPayments } from "@/application/usecases/listIncomingPayments.js";
 import { listOutgoingPayments } from "@/application/usecases/listOutgoingPayments.js";
 import { payInvoice } from "@/application/usecases/payInvoice.js";
-import type { CallToolFn } from "@/domain/types.js";
+import type { CallToolFunction } from "@/domain/types.js";
 
 const MAX_INVOICE_DESCRIPTION_LENGTH = 128;
 const DEFAULT_INVOICE_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
@@ -41,7 +41,7 @@ export const listOutgoingPaymentsSchema = zod.object({
   all: zod.boolean().optional(),
 });
 
-export async function getBalanceHandler(callTool: CallToolFn, httpResponse: Response) {
+export async function getBalanceHandler(callTool: CallToolFunction, httpResponse: Response) {
   try {
     httpResponse.json(await getBalance(callTool));
   } catch (getBalanceError) {
@@ -50,7 +50,7 @@ export async function getBalanceHandler(callTool: CallToolFn, httpResponse: Resp
   }
 }
 
-export async function createInvoiceHandler(callTool: CallToolFn, httpRequestBody: unknown, httpResponse: Response) {
+export async function createInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
     const invoiceToCreate = createInvoiceSchema.parse(httpRequestBody);
     httpResponse.json(await createInvoice(callTool, invoiceToCreate));
@@ -64,7 +64,7 @@ export async function createInvoiceHandler(callTool: CallToolFn, httpRequestBody
   }
 }
 
-export async function decodeInvoiceHandler(callTool: CallToolFn, httpRequestBody: unknown, httpResponse: Response) {
+export async function decodeInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
     const { invoice } = decodeInvoiceSchema.parse(httpRequestBody);
     httpResponse.json(await decodeInvoice(callTool, { invoice }));
@@ -78,7 +78,7 @@ export async function decodeInvoiceHandler(callTool: CallToolFn, httpRequestBody
   }
 }
 
-export async function payInvoiceHandler(callTool: CallToolFn, httpRequestBody: unknown, httpResponse: Response) {
+export async function payInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
     const invoiceToPay = payInvoiceSchema.parse(httpRequestBody);
     httpResponse.json(await payInvoice(callTool, invoiceToPay));
@@ -92,7 +92,7 @@ export async function payInvoiceHandler(callTool: CallToolFn, httpRequestBody: u
   }
 }
 
-export async function listIncomingPaymentsHandler(callTool: CallToolFn, httpRequestQuery: unknown, httpResponse: Response) {
+export async function listIncomingPaymentsHandler(callTool: CallToolFunction, httpRequestQuery: unknown, httpResponse: Response) {
   try {
     const incomingPaymentsQuery = listIncomingPaymentsSchema.parse(httpRequestQuery);
     httpResponse.json(await listIncomingPayments(callTool, incomingPaymentsQuery));
@@ -106,7 +106,7 @@ export async function listIncomingPaymentsHandler(callTool: CallToolFn, httpRequ
   }
 }
 
-export async function listOutgoingPaymentsHandler(callTool: CallToolFn, httpRequestQuery: unknown, httpResponse: Response) {
+export async function listOutgoingPaymentsHandler(callTool: CallToolFunction, httpRequestQuery: unknown, httpResponse: Response) {
   try {
     const outgoingPaymentsQuery = listOutgoingPaymentsSchema.parse(httpRequestQuery);
     httpResponse.json(await listOutgoingPayments(callTool, outgoingPaymentsQuery));
