@@ -13,6 +13,7 @@ import type { CallToolFunction } from "@/domain/types.js";
 
 const MAX_INVOICE_DESCRIPTION_LENGTH = 128;
 const DEFAULT_INVOICE_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
 
 export const createInvoiceSchema = zod.object({
   description: zod.string().max(MAX_INVOICE_DESCRIPTION_LENGTH),
@@ -32,9 +33,9 @@ export const payInvoiceSchema = zod.object({
 });
 
 export const listPaymentsSchema = zod.object({
-  limit: zod.number().optional(),
-  offset: zod.number().optional(),
-  all: zod.boolean().optional(),
+  limit: zod.string().regex(DIGITS_ONLY_PATTERN).transform(Number).optional(),
+  offset: zod.string().regex(DIGITS_ONLY_PATTERN).transform(Number).optional(),
+  all: zod.enum(["true", "false"]).transform((allQueryParameter) => allQueryParameter === "true").optional(),
 });
 
 export async function getBalanceHandler(callTool: CallToolFunction, httpResponse: Response) {
