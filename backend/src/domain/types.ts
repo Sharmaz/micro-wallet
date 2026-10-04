@@ -22,4 +22,8 @@ export type Payment = {
   rawPhoenixdPayment: string;
 };
 
-export type CallToolFunction = (toolCall: { name: string; arguments: Record<string, unknown> }) => Promise<unknown>;
+export type ToolCallResult = { isError?: boolean; [resultProperty: string]: unknown };
+
+export type CallToolFunction = (toolCall: { name: string; arguments: Record<string, unknown> }) => Promise<ToolCallResult>;
+
+export type RecoverPayeeNodeIdFunction = (invoice: string) => string;
