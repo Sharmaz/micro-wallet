@@ -10,6 +10,7 @@ import { listIncomingPayments } from "@/application/usecases/listIncomingPayment
 import { listOutgoingPayments } from "@/application/usecases/listOutgoingPayments.js";
 import { payInvoice } from "@/application/usecases/payInvoice.js";
 import type { CallToolFunction } from "@/domain/types.js";
+import { recoverPayeeNodeId } from "@/infrastructure/bolt11/recoverPayeeNodeId.js";
 
 const MAX_INVOICE_DESCRIPTION_LENGTH = 128;
 const DEFAULT_INVOICE_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
@@ -58,7 +59,7 @@ export async function createInvoiceHandler(callTool: CallToolFunction, httpReque
 export async function decodeInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
     const { invoice } = decodeInvoiceSchema.parse(httpRequestBody);
-    httpResponse.json(await decodeInvoice(callTool, { invoice }));
+    httpResponse.json(await decodeInvoice(callTool, recoverPayeeNodeId, { invoice }));
   } catch (decodeInvoiceError) {
     respondToHandlerError(decodeInvoiceError, "Failed to decode invoice", httpResponse);
   }

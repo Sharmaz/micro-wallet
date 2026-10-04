@@ -1,9 +1,11 @@
-import type { CallToolFunction } from "@/domain/types.js";
+import type { CallToolFunction, RecoverPayeeNodeIdFunction } from "@/domain/types.js";
 
 export type InvoiceToDecode = {
   invoice: string;
 };
 
-export async function decodeInvoice(callTool: CallToolFunction, { invoice }: InvoiceToDecode) {
-  return callTool({ name: "decode-invoice", arguments: { invoice } });
+export async function decodeInvoice(callTool: CallToolFunction, recoverPayeeNodeId: RecoverPayeeNodeIdFunction, { invoice }: InvoiceToDecode) {
+  const decodedInvoiceToolResult = await callTool({ name: "decode-invoice", arguments: { invoice } });
+  if (decodedInvoiceToolResult.isError) return decodedInvoiceToolResult;
+  return { ...decodedInvoiceToolResult, payeeNodeId: recoverPayeeNodeId(invoice) };
 }
