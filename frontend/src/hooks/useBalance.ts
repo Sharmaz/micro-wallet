@@ -4,21 +4,24 @@ import { getBalance } from "../api";
 
 import type { PaymentEvent } from "./usePaymentEvents";
 
-export function useBalance(lastEvent: PaymentEvent | null) {
-  const [balance, setBalance] = useState<number | null>(null);
-  const [error, setError] = useState(false);
+export function useBalance(lastPaymentEvent: PaymentEvent | null) {
+  const [balanceSat, setBalanceSat] = useState<number | null>(null);
+  const [hasBalanceFetchFailed, setHasBalanceFetchFailed] = useState(false);
 
-  const refresh = useCallback(() => {
+  const refreshBalance = useCallback(() => {
     getBalance()
-      .then(setBalance)
-      .catch(() => setError(true));
+      .then((fetchedBalanceSat) => {
+        setBalanceSat(fetchedBalanceSat);
+        setHasBalanceFetchFailed(false);
+      })
+      .catch(() => setHasBalanceFetchFailed(true));
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refreshBalance(); }, [refreshBalance]);
 
   useEffect(() => {
-    if (lastEvent?.type === "payment_received") refresh();
-  }, [lastEvent, refresh]);
+    if (lastPaymentEvent?.type === "payment_received") refreshBalance();
+  }, [lastPaymentEvent, refreshBalance]);
 
-  return { balance, error, refresh };
+  return { balanceSat, hasBalanceFetchFailed, refreshBalance };
 }
