@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+import { SPECIFICATION_EXAMPLE_PAYEE_NODE_ID, specificationExamples } from "../../infrastructure/bolt11/bolt11SpecificationExamples.js";
+
 import { createMockHttpResponse } from "./createMockHttpResponse.js";
 
 import {
   getBalanceHandler,
   createInvoiceHandler,
   createInvoiceSchema,
+  decodeInvoiceHandler,
   payInvoiceHandler,
   listIncomingPaymentsHandler,
   listOutgoingPaymentsHandler,
@@ -96,6 +99,53 @@ describe("createInvoiceHandler", () => {
 
     expect(httpResponse.status).toHaveBeenCalledWith(500);
     expect(httpResponse.json).toHaveBeenCalledWith({ error: "Failed to create invoice" });
+  });
+});
+
+describe("decodeInvoiceHandler", () => {
+  suppressConsoleError();
+
+  const [donationExample] = specificationExamples;
+
+  it("calls callTool with the invoice and adds the payee node id to the tool result", async () => {
+    const decodedInvoiceToolResult = createMcpToolResult(JSON.stringify({ paymentHash: "0001020304050607080900010203040506070809000102030405060708090102" }));
+    const callTool = createMockCallTool(decodedInvoiceToolResult);
+    const httpResponse = createMockHttpResponse();
+
+    await decodeInvoiceHandler(callTool, { invoice: donationExample.invoice }, httpResponse);
+
+    expect(callTool).toHaveBeenCalledWith({ name: "decode-invoice", arguments: { invoice: donationExample.invoice } });
+    expect(httpResponse.json).toHaveBeenCalledWith({ ...decodedInvoiceToolResult, payeeNodeId: SPECIFICATION_EXAMPLE_PAYEE_NODE_ID });
+  });
+
+  it("returns the Phoenixd error without a payee node id", async () => {
+    const rejectedInvoiceToolResult = { ...createMcpToolResult("Invalid invoice"), isError: true };
+    const callTool = createMockCallTool(rejectedInvoiceToolResult);
+    const httpResponse = createMockHttpResponse();
+
+    await decodeInvoiceHandler(callTool, { invoice: "lnbc1invalid" }, httpResponse);
+
+    expect(httpResponse.json).toHaveBeenCalledWith(rejectedInvoiceToolResult);
+  });
+
+  it("returns 400 without calling callTool when the invoice is missing", async () => {
+    const callTool = createMockCallTool();
+    const httpResponse = createMockHttpResponse();
+
+    await decodeInvoiceHandler(callTool, {}, httpResponse);
+
+    expect(httpResponse.status).toHaveBeenCalledWith(400);
+    expect(callTool).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when callTool throws", async () => {
+    const callTool = createMockCallTool(undefined, new Error("MCP connection failed"));
+    const httpResponse = createMockHttpResponse();
+
+    await decodeInvoiceHandler(callTool, { invoice: donationExample.invoice }, httpResponse);
+
+    expect(httpResponse.status).toHaveBeenCalledWith(500);
+    expect(httpResponse.json).toHaveBeenCalledWith({ error: "Failed to decode invoice" });
   });
 });
 
