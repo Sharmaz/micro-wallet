@@ -5,6 +5,7 @@ import App from "../src/App";
 import {
   createBitcoinPriceHttpResponse,
   decodedMidnightSnacksInvoice,
+  MIDNIGHT_SNACKS_AMOUNT_MSAT,
   MIDNIGHT_SNACKS_INVOICE,
   midnightSnacksPaymentReceipt,
 } from "./sendPaymentFixtures";
@@ -46,7 +47,7 @@ test("shows the updated balance after a payment is sent", async () => {
     if (requestedUrl.endsWith("/tool/decode-invoice")) {
       return Promise.resolve(createToolHttpResponse(
         {
-          amount: decodedMidnightSnacksInvoice.amountMsat,
+          amount: MIDNIGHT_SNACKS_AMOUNT_MSAT,
           description: decodedMidnightSnacksInvoice.description,
           paymentHash: decodedMidnightSnacksInvoice.paymentHash,
           timestampSeconds: Math.floor(Date.now() / MILLISECONDS_PER_SECOND),

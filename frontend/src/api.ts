@@ -2,6 +2,7 @@ import backendConfiguration from "./config";
 
 const BOLT11_DEFAULT_EXPIRY_SECONDS = 3600;
 const MILLISECONDS_PER_SECOND = 1000;
+const MILLISATOSHIS_PER_SATOSHI = 1000;
 const UNKNOWN_PAYMENT_FAILURE_MESSAGE = "Payment failed";
 const JSON_REQUEST_HEADERS = { "Content-Type": "application/json" };
 
@@ -41,7 +42,7 @@ export async function createInvoice(description: string, amountSat?: number): Pr
 
 export type DecodedInvoice = {
   payeeNodeId: string;
-  amountMsat: number | null;
+  amountSat: number | null;
   description: string | null;
   paymentHash: string;
   expiresAt: number;
@@ -57,13 +58,17 @@ type PhoenixdDecodedInvoice = {
 
 type DecodeInvoiceToolResult = McpToolResult & { payeeNodeId: string };
 
+function convertMsatToWholeSat(amountMsat: number | undefined) {
+  return typeof amountMsat === "number" ? Math.floor(amountMsat / MILLISATOSHIS_PER_SATOSHI) : null;
+}
+
 export async function decodeInvoice(invoice: string): Promise<DecodedInvoice> {
   const decodeInvoiceToolResult = await fetchToolResult<DecodeInvoiceToolResult>("decode-invoice", "Failed to decode invoice", { invoice });
   const phoenixdDecodedInvoice: PhoenixdDecodedInvoice = parsePhoenixdPayload(decodeInvoiceToolResult);
   const expirySeconds = phoenixdDecodedInvoice.expirySeconds ?? BOLT11_DEFAULT_EXPIRY_SECONDS;
   return {
     payeeNodeId: decodeInvoiceToolResult.payeeNodeId,
-    amountMsat: phoenixdDecodedInvoice.amount ?? null,
+    amountSat: convertMsatToWholeSat(phoenixdDecodedInvoice.amount),
     description: phoenixdDecodedInvoice.description || null,
     paymentHash: phoenixdDecodedInvoice.paymentHash,
     expiresAt: (phoenixdDecodedInvoice.timestampSeconds + expirySeconds) * MILLISECONDS_PER_SECOND,

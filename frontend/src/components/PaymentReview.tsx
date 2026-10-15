@@ -9,7 +9,6 @@ import { CopyButton } from "./CopyButton";
 import { CurrencyInput } from "./CurrencyInput";
 import { PaymentDetailRow } from "./PaymentDetailRow";
 
-const MILLISATOSHIS_PER_SATOSHI = 1000;
 const NODE_ID_VISIBLE_PREFIX_LENGTH = 6;
 const NODE_ID_VISIBLE_SUFFIX_LENGTH = 4;
 const MILLISECONDS_PER_MINUTE = 60_000;
@@ -51,7 +50,7 @@ export function PaymentReview({
 
   const millisecondsUntilExpiry = decodedInvoice.expiresAt - reviewOpenedAt;
   const isInvoiceExpired = millisecondsUntilExpiry <= 0;
-  const invoiceAmountSat = decodedInvoice.amountMsat === null ? null : decodedInvoice.amountMsat / MILLISATOSHIS_PER_SATOSHI;
+  const invoiceAmountSat = decodedInvoice.amountSat;
   const amountToPaySat = invoiceAmountSat ?? enteredAmountSat ?? 0;
   const canConfirmPayment = !isPayingInvoice && !isInvoiceExpired && amountToPaySat > 0;
 

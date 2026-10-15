@@ -2,6 +2,7 @@ import { decodeInvoice, payInvoice } from "../src/api";
 
 import {
   decodedMidnightSnacksInvoice,
+  MIDNIGHT_SNACKS_AMOUNT_MSAT,
   MIDNIGHT_SNACKS_INVOICE,
   MIDNIGHT_SNACKS_PAYEE_NODE_ID,
   MIDNIGHT_SNACKS_PAYMENT_HASH,
@@ -46,9 +47,9 @@ test("decodeInvoice sends the invoice to the decode-invoice tool", async () => {
   );
 });
 
-test("decodeInvoice returns the payee, the exact amount in millisatoshis and the expiration time", async () => {
+test("decodeInvoice returns the payee, the amount in whole sats rounded down and the expiration time", async () => {
   mockDecodeInvoiceToolHttpResponse({
-    amount: decodedMidnightSnacksInvoice.amountMsat,
+    amount: MIDNIGHT_SNACKS_AMOUNT_MSAT,
     description: decodedMidnightSnacksInvoice.description,
     expirySeconds: INVOICE_EXPIRY_SECONDS,
   });
@@ -64,7 +65,7 @@ test("decodeInvoice returns null amount and description for a zero-amount invoic
 
   const decodedZeroAmountInvoice = await decodeInvoice(MIDNIGHT_SNACKS_INVOICE);
 
-  expect(decodedZeroAmountInvoice.amountMsat).toBeNull();
+  expect(decodedZeroAmountInvoice.amountSat).toBeNull();
   expect(decodedZeroAmountInvoice.description).toBeNull();
 });
 

@@ -97,7 +97,7 @@ test("pays the normalized invoice and notifies the sent payment", async () => {
 });
 
 test("sends the entered amount for a zero-amount invoice", async () => {
-  mockDecodeInvoice.mockResolvedValue({ ...decodedMidnightSnacksInvoice, amountMsat: null });
+  mockDecodeInvoice.mockResolvedValue({ ...decodedMidnightSnacksInvoice, amountSat: null });
   const { sendPaymentFlow } = renderSendPaymentFlow();
   await openPaymentConfirmationFor(sendPaymentFlow, MIDNIGHT_SNACKS_INVOICE);
 

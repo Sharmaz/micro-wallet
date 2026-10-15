@@ -9,10 +9,11 @@ export const MIDNIGHT_SNACKS_INVOICE = "lnbc6434150p1p4v9t7fpp5trjlksghe25px06z9
 export const MIDNIGHT_SNACKS_PAYEE_NODE_ID = "03b41e1d6b9777a24330413e4a5bd3c6660c1718cc3cd96deeedc5302e9521190b";
 export const MIDNIGHT_SNACKS_PAYMENT_HASH = "ab".repeat(32);
 export const MIDNIGHT_SNACKS_PAYMENT_PREIMAGE = "cd".repeat(32);
+export const MIDNIGHT_SNACKS_AMOUNT_MSAT = 643_915;
 
 export const decodedMidnightSnacksInvoice: DecodedInvoice = {
   payeeNodeId: MIDNIGHT_SNACKS_PAYEE_NODE_ID,
-  amountMsat: 643_415,
+  amountSat: 643,
   description: "midnight snacks",
   paymentHash: MIDNIGHT_SNACKS_PAYMENT_HASH,
   expiresAt: Date.now() + 6 * MILLISECONDS_PER_DAY + MILLISECONDS_PER_MINUTE,

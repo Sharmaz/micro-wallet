@@ -45,8 +45,8 @@ test("shows the destination, amount, fiat equivalent, description and expiration
 
   expect(screen.getByRole("dialog", { name: "Review payment" })).toBeInTheDocument();
   expect(screen.getByText("03b41e…190b")).toBeInTheDocument();
-  expect(screen.getByText("643.415 sat")).toBeInTheDocument();
-  expect(await screen.findByText("≈ USD 0.64 · MXN 11.58")).toBeInTheDocument();
+  expect(screen.getByText("643 sat")).toBeInTheDocument();
+  expect(await screen.findByText("≈ USD 0.64 · MXN 11.57")).toBeInTheDocument();
   expect(screen.getByText("midnight snacks")).toBeInTheDocument();
   expect(screen.getByText("Expires in 6 days")).toBeInTheDocument();
   expect(getConfirmPaymentButton()).toBeEnabled();
@@ -74,7 +74,7 @@ test("disables Confirm when the invoice is expired", async () => {
 
 test("asks for an amount before confirming a zero-amount invoice", async () => {
   const { onConfirmPayment } = await renderPaymentConfirmationModal({
-    decodedInvoice: { ...decodedMidnightSnacksInvoice, amountMsat: null },
+    decodedInvoice: { ...decodedMidnightSnacksInvoice, amountSat: null },
   });
   await waitFor(() => expect(screen.queryByText(/Fetching price/i)).not.toBeInTheDocument());
 
