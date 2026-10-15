@@ -1,14 +1,13 @@
 import { useState } from "react";
 
+import { BalanceSummary } from "./components/BalanceSummary";
 import { History } from "./components/History";
 import { Receive } from "./components/Receive";
 import { Send } from "./components/Send";
 import { Settings } from "./components/Settings";
 import { Toast } from "./components/Toast";
-import { formatFiatEquivalent } from "./formatters/formatFiatEquivalent";
 import { useBalance } from "./hooks/useBalance";
 import { usePaymentEvents } from "./hooks/usePaymentEvents";
-import { usePrice } from "./hooks/usePrice";
 
 type TabId = "receive" | "send" | "history" | "settings";
 
@@ -21,30 +20,18 @@ const tabs: { id: TabId; label: string }[] = [
 
 function App() {
   const [activeTabId, setActiveTabId] = useState<TabId>("receive");
-  const { lastEvent: lastPaymentEvent } = usePaymentEvents();
-  const { balance: balanceSat, error: hasBalanceFetchFailed, refresh: refreshBalance } = useBalance(lastPaymentEvent);
-  const { price: bitcoinPrice } = usePrice();
+  const { lastPaymentEvent } = usePaymentEvents();
+  const { balanceSat, hasBalanceFetchFailed, refreshBalance } = useBalance(lastPaymentEvent);
 
   return (
     <div className="min-h-screen bg-neutral-800 flex flex-col">
       <header className="px-6 pt-8 pb-6 text-center">
         <h1 className="text-3xl font-bold text-green-500">Micro Wallet</h1>
         <div className="mt-2 text-neutral-400 text-sm">
-          {hasBalanceFetchFailed ? (
-            <span className="text-red-400">Backend offline</span>
-          ) : balanceSat === null ? (
-            "Loading..."
-          ) : (
-            <div className="flex flex-col items-center gap-1">
-              <div>
-                <span className="text-white text-2xl font-semibold">{balanceSat.toLocaleString()}</span>
-                <span className="text-green-600 ml-1">sat</span>
-              </div>
-              {bitcoinPrice && (
-                <span className="text-neutral-400 text-xs">{formatFiatEquivalent(balanceSat, bitcoinPrice)}</span>
-              )}
-            </div>
-          )}
+          <BalanceSummary
+            balanceSat={balanceSat}
+            hasBalanceFetchFailed={hasBalanceFetchFailed}
+          />
         </div>
       </header>
 
@@ -71,7 +58,7 @@ function App() {
         {activeTabId === "settings" && <Settings />}
       </main>
 
-      <Toast event={lastPaymentEvent} />
+      <Toast paymentEvent={lastPaymentEvent} />
     </div>
   );
 }

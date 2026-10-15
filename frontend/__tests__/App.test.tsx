@@ -61,14 +61,14 @@ test("shows the updated balance after a payment is sent", async () => {
     return Promise.resolve(createToolHttpResponse({ balanceSat: isPaymentSent ? 49_353 : 50_000 }));
   });
   render(<App />);
-  expect(await screen.findByText(/^50[,.]000$/)).toBeInTheDocument();
+  expect(await screen.findByText("50,000")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
   fireEvent.change(screen.getByRole("textbox"), { target: { value: MIDNIGHT_SNACKS_INVOICE } });
   fireEvent.click(screen.getByRole("button", { name: "Pay Invoice" }));
   fireEvent.click(await screen.findByRole("button", { name: "Confirm payment" }));
 
-  expect(await screen.findByText(/^49[,.]353$/)).toBeInTheDocument();
+  expect(await screen.findByText("49,353")).toBeInTheDocument();
 });
 
 test("shows Backend offline when the balance fetch fails", async () => {
