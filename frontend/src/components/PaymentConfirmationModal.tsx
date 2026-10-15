@@ -24,7 +24,7 @@ export function PaymentConfirmationModal({
   onClose,
 }: PaymentConfirmationModalProps) {
   const titleId = useId();
-  const { price: bitcoinPrice } = usePrice();
+  const { bitcoinPrice } = usePrice();
 
   useEffect(() => {
     function closeOnEscape(documentKeyDown: KeyboardEvent) {

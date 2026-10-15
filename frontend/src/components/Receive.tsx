@@ -6,39 +6,41 @@ import { createInvoice } from "../api";
 
 import { CurrencyInput } from "./CurrencyInput";
 
+const COPIED_FEEDBACK_DURATION_MILLISECONDS = 2000;
+const INVOICE_CREATION_FAILURE_MESSAGE = "Failed to create invoice. Check the backend.";
+
 export function Receive() {
   const [description, setDescription] = useState("");
   const [amountSat, setAmountSat] = useState<number | null>(null);
-  const [invoice, setInvoice] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [createdInvoice, setCreatedInvoice] = useState("");
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+  const [invoiceErrorMessage, setInvoiceErrorMessage] = useState<string | null>(null);
+  const [isInvoiceCopied, setIsInvoiceCopied] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setInvoice("");
-    setLoading(true);
+  async function createInvoiceOnSubmit(invoiceFormSubmit: React.FormEvent<HTMLFormElement>) {
+    invoiceFormSubmit.preventDefault();
+    setInvoiceErrorMessage(null);
+    setCreatedInvoice("");
+    setIsCreatingInvoice(true);
     try {
-      const result = await createInvoice(description, amountSat ?? undefined);
-      setInvoice(result);
+      setCreatedInvoice(await createInvoice(description, amountSat ?? undefined));
     } catch {
-      setError("Failed to create invoice. Check the backend.");
+      setInvoiceErrorMessage(INVOICE_CREATION_FAILURE_MESSAGE);
     } finally {
-      setLoading(false);
+      setIsCreatingInvoice(false);
     }
   }
 
-  async function handleCopy() {
-    await navigator.clipboard.writeText(invoice);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function copyCreatedInvoice() {
+    await navigator.clipboard.writeText(createdInvoice);
+    setIsInvoiceCopied(true);
+    setTimeout(() => setIsInvoiceCopied(false), COPIED_FEEDBACK_DURATION_MILLISECONDS);
   }
 
   return (
     <div className="w-full max-w-md mx-auto">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={createInvoiceOnSubmit}
         className="flex flex-col gap-4"
       >
         <div className="flex flex-col gap-1">
@@ -46,7 +48,7 @@ export function Receive() {
           <input
             type="text"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(descriptionInputChange) => setDescription(descriptionInputChange.target.value)}
             placeholder="midnight snacks"
             maxLength={128}
             required
@@ -55,39 +57,39 @@ export function Receive() {
         </div>
 
         <CurrencyInput
-          onSatsChange={setAmountSat}
+          onAmountSatChange={setAmountSat}
           placeholder="leave empty for any amount"
         />
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isCreatingInvoice}
           className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-medium rounded-lg py-2 transition-colors"
         >
-          {loading ? "Generating..." : "Generate Invoice"}
+          {isCreatingInvoice ? "Generating..." : "Generate Invoice"}
         </button>
       </form>
 
-      {error && (
-        <p className="mt-4 text-red-400 text-sm text-center">{error}</p>
+      {invoiceErrorMessage && (
+        <p className="mt-4 text-red-400 text-sm text-center">{invoiceErrorMessage}</p>
       )}
 
-      {invoice && (
+      {createdInvoice && (
         <div className="mt-6 flex flex-col items-center gap-4">
           <div className="bg-white p-4 rounded-xl">
             <QRCodeSVG
-              value={invoice}
+              value={createdInvoice}
               size={200}
             />
           </div>
           <div className="w-full bg-neutral-700 rounded-lg px-4 py-2">
-            <p className="text-xs text-neutral-400 break-all">{invoice}</p>
+            <p className="text-xs text-neutral-400 break-all">{createdInvoice}</p>
           </div>
           <button
-            onClick={handleCopy}
+            onClick={copyCreatedInvoice}
             className="w-full bg-neutral-600 hover:bg-neutral-500 text-white rounded-lg py-2 text-sm transition-colors"
           >
-            {copied ? "Copied!" : "Copy Invoice"}
+            {isInvoiceCopied ? "Copied!" : "Copy Invoice"}
           </button>
         </div>
       )}

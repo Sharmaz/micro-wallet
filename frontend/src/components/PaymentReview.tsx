@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { DecodedInvoice } from "../api";
 import { formatFiatEquivalent } from "../formatters/formatFiatEquivalent";
 import { formatSatAmount } from "../formatters/formatSatAmount";
-import type { PriceData } from "../hooks/usePrice";
+import type { BitcoinPrice } from "../hooks/usePrice";
 
 import { CopyButton } from "./CopyButton";
 import { CurrencyInput } from "./CurrencyInput";
@@ -19,7 +19,7 @@ const relativeTimeFormatter = new Intl.RelativeTimeFormat("en-US");
 
 type PaymentReviewProps = {
   decodedInvoice: DecodedInvoice;
-  bitcoinPrice: PriceData | null;
+  bitcoinPrice: BitcoinPrice | null;
   isPayingInvoice: boolean;
   paymentErrorMessage: string | null;
   onConfirmPayment: (enteredAmountSat?: number) => void;
@@ -92,7 +92,7 @@ export function PaymentReview({
 
       {invoiceAmountSat === null && (
         <CurrencyInput
-          onSatsChange={setEnteredAmountSat}
+          onAmountSatChange={setEnteredAmountSat}
           placeholder="amount to send"
         />
       )}

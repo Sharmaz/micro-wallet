@@ -1,14 +1,14 @@
 import type { PaymentReceipt } from "../api";
 import { formatFiatEquivalent } from "../formatters/formatFiatEquivalent";
 import { formatSatAmount } from "../formatters/formatSatAmount";
-import type { PriceData } from "../hooks/usePrice";
+import type { BitcoinPrice } from "../hooks/usePrice";
 
 import { CopyButton } from "./CopyButton";
 import { PaymentDetailRow } from "./PaymentDetailRow";
 
 type SentPaymentReceiptProps = {
   paymentReceipt: PaymentReceipt;
-  bitcoinPrice: PriceData | null;
+  bitcoinPrice: BitcoinPrice | null;
   onClose: () => void;
 };
 
