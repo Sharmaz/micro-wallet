@@ -2,10 +2,10 @@ import type { Response } from "express";
 
 import { getPrice } from "@/application/usecases/getPrice.js";
 
-export async function getPriceHandler(res: Response) {
+export async function getPriceHandler(httpResponse: Response) {
   try {
-    res.json(await getPrice());
+    httpResponse.json(await getPrice());
   } catch {
-    res.status(503).json({ error: "Price data unavailable" });
+    httpResponse.status(503).json({ error: "Price data unavailable" });
   }
 }

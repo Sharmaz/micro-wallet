@@ -1,6 +1,6 @@
-import type { CallToolFn } from "@/domain/types.js";
+import type { CallToolFunction } from "@/domain/types.js";
 
-export type CreateInvoiceInput = {
+export type InvoiceToCreate = {
   description: string;
   amountSat?: number;
   expirySeconds?: number;
@@ -8,6 +8,6 @@ export type CreateInvoiceInput = {
   webhookUrl?: string;
 };
 
-export async function createInvoice(callTool: CallToolFn, input: CreateInvoiceInput) {
-  return callTool({ name: "create-invoice", arguments: input as Record<string, unknown> });
+export async function createInvoice(callTool: CallToolFunction, invoiceToCreate: InvoiceToCreate) {
+  return callTool({ name: "create-invoice", arguments: invoiceToCreate });
 }

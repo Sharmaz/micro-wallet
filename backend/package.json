@@ -19,6 +19,9 @@
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.4.0",
     "better-sqlite3": "^12.10.0",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.45.2",
@@ -40,6 +43,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-import": "^2.32.0",
     "globals": "^15.15.0",
+    "typescript": "6.0.3",
     "typescript-eslint": "^8.59.3",
     "vitest": "^4.1.6"
   }

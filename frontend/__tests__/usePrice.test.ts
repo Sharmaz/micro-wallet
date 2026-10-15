@@ -2,26 +2,25 @@ import { renderHook, waitFor } from "@testing-library/react";
 
 import { usePrice } from "../src/hooks/usePrice";
 
-const mockPrice = { usd: 105000, mxn: 2100000, updatedAt: Date.now() };
+const FETCHED_BITCOIN_PRICE = { usd: 105000, mxn: 2100000, updatedAt: Date.now() };
 
 afterEach(() => vi.restoreAllMocks());
 
-test("fetches and returns price data", async () => {
+test("fetches and returns the bitcoin price", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue({
     ok: true,
-    json: async () => mockPrice,
+    json: async () => FETCHED_BITCOIN_PRICE,
   } as Response);
 
   const { result } = renderHook(() => usePrice());
 
-  await waitFor(() => expect(result.current.loading).toBe(false));
+  await waitFor(() => expect(result.current.isLoadingPrice).toBe(false));
 
-  expect(result.current.price?.usd).toBe(105000);
-  expect(result.current.price?.mxn).toBe(2100000);
-  expect(result.current.error).toBe(false);
+  expect(result.current.bitcoinPrice).toEqual(FETCHED_BITCOIN_PRICE);
+  expect(result.current.hasPriceFetchFailed).toBe(false);
 });
 
-test("sets error when fetch fails", async () => {
+test("marks the price fetch as failed when the backend responds with an error", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue({
     ok: false,
     json: async () => ({}),
@@ -29,10 +28,10 @@ test("sets error when fetch fails", async () => {
 
   const { result } = renderHook(() => usePrice());
 
-  await waitFor(() => expect(result.current.loading).toBe(false));
+  await waitFor(() => expect(result.current.isLoadingPrice).toBe(false));
 
-  expect(result.current.error).toBe(true);
-  expect(result.current.price).toBeNull();
+  expect(result.current.hasPriceFetchFailed).toBe(true);
+  expect(result.current.bitcoinPrice).toBeNull();
 });
 
 test("starts in loading state", () => {
@@ -40,5 +39,5 @@ test("starts in loading state", () => {
 
   const { result } = renderHook(() => usePrice());
 
-  expect(result.current.loading).toBe(true);
+  expect(result.current.isLoadingPrice).toBe(true);
 });

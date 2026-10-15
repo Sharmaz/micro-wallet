@@ -1,38 +1,38 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-export type PriceData = {
+export type BitcoinPrice = {
   usd: number;
   mxn: number;
   updatedAt: number;
   stale?: boolean;
 };
 
-const REFRESH_INTERVAL_MS = 60_000;
+const REFRESH_INTERVAL_MILLISECONDS = 60_000;
 
 export function usePrice() {
-  const [price, setPrice] = useState<PriceData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [bitcoinPrice, setBitcoinPrice] = useState<BitcoinPrice | null>(null);
+  const [isLoadingPrice, setIsLoadingPrice] = useState(true);
+  const [hasPriceFetchFailed, setHasPriceFetchFailed] = useState(false);
 
-  async function fetchPrice() {
+  async function fetchBitcoinPrice() {
     try {
-      const res = await fetch("/price");
-      if (!res.ok) throw new Error("Price unavailable");
-      const data: PriceData = await res.json();
-      setPrice(data);
-      setError(false);
+      const priceHttpResponse = await fetch("/price");
+      if (!priceHttpResponse.ok) throw new Error("Price unavailable");
+      const fetchedBitcoinPrice: BitcoinPrice = await priceHttpResponse.json();
+      setBitcoinPrice(fetchedBitcoinPrice);
+      setHasPriceFetchFailed(false);
     } catch {
-      setError(true);
+      setHasPriceFetchFailed(true);
     } finally {
-      setLoading(false);
+      setIsLoadingPrice(false);
     }
   }
 
   useEffect(() => {
-    fetchPrice();
-    const interval = setInterval(fetchPrice, REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
+    fetchBitcoinPrice();
+    const refreshInterval = setInterval(fetchBitcoinPrice, REFRESH_INTERVAL_MILLISECONDS);
+    return () => clearInterval(refreshInterval);
   }, []);
 
-  return { price, loading, error };
+  return { bitcoinPrice, isLoadingPrice, hasPriceFetchFailed };
 }

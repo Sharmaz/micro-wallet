@@ -7,18 +7,25 @@ export type PaymentEvent = {
   payerNote?: string;
 };
 
+function parsePaymentEvent(paymentEventMessageText: string): PaymentEvent | null {
+  try {
+    return JSON.parse(paymentEventMessageText);
+  } catch {
+    return null;
+  }
+}
+
 export function usePaymentEvents() {
-  const [lastEvent, setLastEvent] = useState<PaymentEvent | null>(null);
+  const [lastPaymentEvent, setLastPaymentEvent] = useState<PaymentEvent | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.host}/ws`);
-    ws.onmessage = (event) => {
-      try {
-        setLastEvent(JSON.parse(event.data as string));
-      } catch {}
+    const paymentEventsSocket = new WebSocket(`ws://${window.location.host}/ws`);
+    paymentEventsSocket.onmessage = (paymentEventMessage) => {
+      const receivedPaymentEvent = parsePaymentEvent(paymentEventMessage.data as string);
+      if (receivedPaymentEvent) setLastPaymentEvent(receivedPaymentEvent);
     };
-    return () => ws.close();
+    return () => paymentEventsSocket.close();
   }, []);
 
-  return { lastEvent };
+  return { lastPaymentEvent };
 }

@@ -1,99 +1,93 @@
 import type { Response } from "express";
-import { z } from "zod";
+import * as zod from "zod";
+
+import { respondToHandlerError } from "./respondToHandlerError.js";
 
 import { createInvoice } from "@/application/usecases/createInvoice.js";
+import { decodeInvoice } from "@/application/usecases/decodeInvoice.js";
 import { getBalance } from "@/application/usecases/getBalance.js";
 import { listIncomingPayments } from "@/application/usecases/listIncomingPayments.js";
 import { listOutgoingPayments } from "@/application/usecases/listOutgoingPayments.js";
 import { payInvoice } from "@/application/usecases/payInvoice.js";
-import type { CallToolFn } from "@/domain/types.js";
+import type { CallToolFunction } from "@/domain/types.js";
+import { recoverPayeeNodeId } from "@/infrastructure/bolt11/recoverPayeeNodeId.js";
 
-export const createInvoiceSchema = z.object({
-  description: z.string().max(128),
-  amountSat: z.number().optional(),
-  expirySeconds: z.number().optional().default(604800),
-  externalId: z.string().optional(),
-  webhookUrl: z.string().optional(),
+const MAX_INVOICE_DESCRIPTION_LENGTH = 128;
+const DEFAULT_INVOICE_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
+export const createInvoiceSchema = zod.object({
+  description: zod.string().max(MAX_INVOICE_DESCRIPTION_LENGTH),
+  amountSat: zod.number().optional(),
+  expirySeconds: zod.number().optional().default(DEFAULT_INVOICE_EXPIRY_SECONDS),
+  externalId: zod.string().optional(),
+  webhookUrl: zod.string().optional(),
 });
 
-export const payInvoiceSchema = z.object({
-  invoice: z.string().min(1),
-  amountSat: z.number().optional(),
+export const decodeInvoiceSchema = zod.object({
+  invoice: zod.string().min(1),
 });
 
-export const listIncomingPaymentsSchema = z.object({
-  limit: z.number().optional(),
-  offset: z.number().optional(),
-  all: z.boolean().optional(),
+export const payInvoiceSchema = zod.object({
+  invoice: zod.string().min(1),
+  amountSat: zod.number().optional(),
 });
 
-export const listOutgoingPaymentsSchema = z.object({
-  limit: z.number().optional(),
-  offset: z.number().optional(),
-  all: z.boolean().optional(),
+export const listPaymentsSchema = zod.object({
+  limit: zod.string().regex(DIGITS_ONLY_PATTERN).transform(Number).optional(),
+  offset: zod.string().regex(DIGITS_ONLY_PATTERN).transform(Number).optional(),
+  all: zod.enum(["true", "false"]).transform((allQueryParameter) => allQueryParameter === "true").optional(),
 });
 
-export async function getBalanceHandler(callTool: CallToolFn, res: Response) {
+export async function getBalanceHandler(callTool: CallToolFunction, httpResponse: Response) {
   try {
-    res.json(await getBalance(callTool));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to get balance" });
+    httpResponse.json(await getBalance(callTool));
+  } catch (getBalanceError) {
+    respondToHandlerError(getBalanceError, "Failed to get balance", httpResponse);
   }
 }
 
-export async function createInvoiceHandler(callTool: CallToolFn, body: unknown, res: Response) {
+export async function createInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
-    const parsed = createInvoiceSchema.parse(body);
-    res.json(await createInvoice(callTool, parsed));
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid parameters", details: err.errors });
-      return;
-    }
-    console.error(err);
-    res.status(500).json({ error: "Failed to create invoice" });
+    const invoiceToCreate = createInvoiceSchema.parse(httpRequestBody);
+    httpResponse.json(await createInvoice(callTool, invoiceToCreate));
+  } catch (createInvoiceError) {
+    respondToHandlerError(createInvoiceError, "Failed to create invoice", httpResponse);
   }
 }
 
-export async function payInvoiceHandler(callTool: CallToolFn, body: unknown, res: Response) {
+export async function decodeInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
-    const parsed = payInvoiceSchema.parse(body);
-    res.json(await payInvoice(callTool, parsed));
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid parameters", details: err.errors });
-      return;
-    }
-    console.error(err);
-    res.status(500).json({ error: "Failed to pay invoice" });
+    const { invoice } = decodeInvoiceSchema.parse(httpRequestBody);
+    httpResponse.json(await decodeInvoice(callTool, recoverPayeeNodeId, { invoice }));
+  } catch (decodeInvoiceError) {
+    respondToHandlerError(decodeInvoiceError, "Failed to decode invoice", httpResponse);
   }
 }
 
-export async function listIncomingPaymentsHandler(callTool: CallToolFn, query: unknown, res: Response) {
+export async function payInvoiceHandler(callTool: CallToolFunction, httpRequestBody: unknown, httpResponse: Response) {
   try {
-    const parsed = listIncomingPaymentsSchema.parse(query);
-    res.json(await listIncomingPayments(callTool, parsed));
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid parameters", details: err.errors });
-      return;
-    }
-    console.error(err);
-    res.status(500).json({ error: "Failed to list payments" });
+    const invoiceToPay = payInvoiceSchema.parse(httpRequestBody);
+    httpResponse.json(await payInvoice(callTool, invoiceToPay));
+  } catch (payInvoiceError) {
+    respondToHandlerError(payInvoiceError, "Failed to pay invoice", httpResponse);
   }
 }
 
-export async function listOutgoingPaymentsHandler(callTool: CallToolFn, query: unknown, res: Response) {
+export async function listIncomingPaymentsHandler(callTool: CallToolFunction, httpRequestQuery: unknown, httpResponse: Response) {
   try {
-    const parsed = listOutgoingPaymentsSchema.parse(query);
-    res.json(await listOutgoingPayments(callTool, parsed));
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ error: "Invalid parameters", details: err.errors });
-      return;
-    }
-    console.error(err);
-    res.status(500).json({ error: "Failed to list outgoing payments" });
+    const incomingPaymentsQuery = listPaymentsSchema.parse(httpRequestQuery);
+    httpResponse.json(await listIncomingPayments(callTool, incomingPaymentsQuery));
+  } catch (listIncomingPaymentsError) {
+    respondToHandlerError(listIncomingPaymentsError, "Failed to list incoming payments", httpResponse);
+  }
+}
+
+export async function listOutgoingPaymentsHandler(callTool: CallToolFunction, httpRequestQuery: unknown, httpResponse: Response) {
+  try {
+    const outgoingPaymentsQuery = listPaymentsSchema.parse(httpRequestQuery);
+    httpResponse.json(await listOutgoingPayments(callTool, outgoingPaymentsQuery));
+  } catch (listOutgoingPaymentsError) {
+    respondToHandlerError(listOutgoingPaymentsError, "Failed to list outgoing payments", httpResponse);
   }
 }
